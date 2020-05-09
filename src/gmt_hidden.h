@@ -32,16 +32,16 @@
 #ifndef GMT_HIDDEN_H
 #define GMT_HIDDEN_H
 
-GMT_LOCAL inline struct GMT_DATASET_HIDDEN     * gmt_get_DD_hidden (struct GMT_DATASET *p)     {return (p->hidden);}
-GMT_LOCAL inline struct GMT_DATATABLE_HIDDEN   * gmt_get_DT_hidden (struct GMT_DATATABLE *p)   {return (p->hidden);}
-GMT_LOCAL inline struct GMT_DATASEGMENT_HIDDEN * gmt_get_DS_hidden (struct GMT_DATASEGMENT *p) {return (p->hidden);}
-GMT_LOCAL inline struct GMT_PALETTE_HIDDEN     * gmt_get_C_hidden (struct GMT_PALETTE *p)      {return (p->hidden);}
-GMT_LOCAL inline struct GMT_POSTSCRIPT_HIDDEN  * gmt_get_P_hidden (struct GMT_POSTSCRIPT *p)   {return (p->hidden);}
-GMT_LOCAL inline struct GMT_VECTOR_HIDDEN      * gmt_get_V_hidden (struct GMT_VECTOR *p)       {return (p->hidden);}
-GMT_LOCAL inline struct GMT_MATRIX_HIDDEN      * gmt_get_M_hidden (struct GMT_MATRIX *p)       {return (p->hidden);}
-GMT_LOCAL inline struct GMT_GRID_HIDDEN        * gmt_get_G_hidden (struct GMT_GRID *p)         {return (p->hidden);}
-GMT_LOCAL inline struct GMT_IMAGE_HIDDEN       * gmt_get_I_hidden (struct GMT_IMAGE *p)        {return (p->hidden);}
-GMT_LOCAL inline struct GMT_GRID_HEADER_HIDDEN * gmt_get_H_hidden (struct GMT_GRID_HEADER *p)  {return (p->hidden);}
+static inline struct GMT_DATASET_HIDDEN     * gmt_get_DD_hidden (struct GMT_DATASET *p)     {return (p->hidden);}
+static inline struct GMT_DATATABLE_HIDDEN   * gmt_get_DT_hidden (struct GMT_DATATABLE *p)   {return (p->hidden);}
+static inline struct GMT_DATASEGMENT_HIDDEN * gmt_get_DS_hidden (struct GMT_DATASEGMENT *p) {return (p->hidden);}
+static inline struct GMT_PALETTE_HIDDEN     * gmt_get_C_hidden (struct GMT_PALETTE *p)      {return (p->hidden);}
+static inline struct GMT_POSTSCRIPT_HIDDEN  * gmt_get_P_hidden (struct GMT_POSTSCRIPT *p)   {return (p->hidden);}
+static inline struct GMT_VECTOR_HIDDEN      * gmt_get_V_hidden (struct GMT_VECTOR *p)       {return (p->hidden);}
+static inline struct GMT_MATRIX_HIDDEN      * gmt_get_M_hidden (struct GMT_MATRIX *p)       {return (p->hidden);}
+static inline struct GMT_GRID_HIDDEN        * gmt_get_G_hidden (struct GMT_GRID *p)         {return (p->hidden);}
+static inline struct GMT_IMAGE_HIDDEN       * gmt_get_I_hidden (struct GMT_IMAGE *p)        {return (p->hidden);}
+static inline struct GMT_GRID_HEADER_HIDDEN * gmt_get_H_hidden (struct GMT_GRID_HEADER *p)  {return (p->hidden);}
 
 /* Here are the GMT data types used for tables */
 
@@ -170,6 +170,7 @@ struct GMT_GRID_HEADER_HIDDEN {
 	unsigned int gn;                 /* true if top    edge will be set as N pole  */
 	unsigned int gs;                 /* true if bottom edge will be set as S pole  */
 	unsigned int is_netcdf4;         /* true if netCDF-4/HDF5 format */
+	unsigned int var_spacing[2];     /* true if a netcdf grid has non-equidistant x and/or y arrays */
 	enum GMT_enum_type orig_datatype; /* GMT_FLOAT, GMT_SHORT, etc how the source grid was represented */
 	size_t z_chunksize[2];           /* chunk size (lat,lon) */
 	unsigned int z_scale_given;	 /* 1 if +s was specified */
@@ -200,6 +201,6 @@ struct GMT_IMAGE_HIDDEN {	/* Supporting information hidden from the API */
 };
 
 /* Get the segments next segment (for holes in perimeters */
-GMT_LOCAL inline struct GMT_DATASEGMENT * gmt_get_next_S (struct GMT_DATASEGMENT *S) {struct GMT_DATASEGMENT_HIDDEN *SH = gmt_get_DS_hidden (S); return (SH->next);}
+static inline struct GMT_DATASEGMENT * gmt_get_next_S (struct GMT_DATASEGMENT *S) {struct GMT_DATASEGMENT_HIDDEN *SH = gmt_get_DS_hidden (S); return (SH->next);}
 
 #endif /* GMT_HIDDEN_H */

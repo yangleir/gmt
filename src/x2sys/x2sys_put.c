@@ -41,26 +41,26 @@
 #define THIS_MODULE_OPTIONS "->V"
 
 struct X2SYS_PUT_CTRL {
-	struct In {	/* -In */
+	struct X2SYS_PUT_In {	/* -In */
 		bool active;
 		char *file;
 	} In;
-	struct D {	/* -D */
+	struct X2SYS_PUT_D {	/* -D */
 		bool active;
 	} D;
-	struct F {	/* -F */
+	struct X2SYS_PUT_F {	/* -F */
 		bool active;
 	} F;
-	struct S {	/* -S */
+	struct X2SYS_PUT_S {	/* -S */
 		bool active;
 	} S;
-	struct T {	/* -T */
+	struct X2SYS_PUT_T {	/* -T */
 		bool active;
 		char *TAG;
 	} T;
 };
 
-GMT_LOCAL void *New_Ctrl (struct GMT_CTRL *GMT) {	/* Allocate and initialize a new control structure */
+static void *New_Ctrl (struct GMT_CTRL *GMT) {	/* Allocate and initialize a new control structure */
 	struct X2SYS_PUT_CTRL *C;
 
 	C = gmt_M_memory (GMT, NULL, 1, struct X2SYS_PUT_CTRL);
@@ -70,14 +70,14 @@ GMT_LOCAL void *New_Ctrl (struct GMT_CTRL *GMT) {	/* Allocate and initialize a n
 	return (C);
 }
 
-GMT_LOCAL void Free_Ctrl (struct GMT_CTRL *GMT, struct X2SYS_PUT_CTRL *C) {	/* Deallocate control structure */
+static void Free_Ctrl (struct GMT_CTRL *GMT, struct X2SYS_PUT_CTRL *C) {	/* Deallocate control structure */
 	if (!C) return;
 	gmt_M_str_free (C->In.file);
 	gmt_M_str_free (C->T.TAG);
 	gmt_M_free (GMT, C);
 }
 
-GMT_LOCAL int usage (struct GMTAPI_CTRL *API, int level) {
+static int usage (struct GMTAPI_CTRL *API, int level) {
 	const char *name = gmt_show_name_and_purpose (API, THIS_MODULE_LIB, THIS_MODULE_CLASSIC_NAME, THIS_MODULE_PURPOSE);
 	if (level == GMT_MODULE_PURPOSE) return (GMT_NOERROR);
 	GMT_Message (API, GMT_TIME_NONE, "usage: %s [<info.tbf>] -T<TAG> [-D] [-F] [%s] [%s]\n\n", name, GMT_V_OPT, GMT_PAR_OPT);
@@ -95,7 +95,7 @@ GMT_LOCAL int usage (struct GMTAPI_CTRL *API, int level) {
 	return (GMT_MODULE_USAGE);
 }
 
-GMT_LOCAL int parse (struct GMT_CTRL *GMT, struct X2SYS_PUT_CTRL *Ctrl, struct GMT_OPTION *options) {
+static int parse (struct GMT_CTRL *GMT, struct X2SYS_PUT_CTRL *Ctrl, struct GMT_OPTION *options) {
 
 	/* This parses the options provided to grdcut and sets parameters in CTRL.
 	 * Any GMT common options will override values set previously by other commands.

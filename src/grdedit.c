@@ -42,46 +42,46 @@
 #define THIS_MODULE_OPTIONS "-:JRVbdefhi" GMT_OPT("H")
 
 struct GRDEDIT_CTRL {
-	struct In {
+	struct GRDEDIT_In {
 		bool active;
 		char *file;
 	} In;
-	struct A {	/* -A */
+	struct GRDEDIT_A {	/* -A */
 		bool active;
 	} A;
-	struct C {	/* -C */
+	struct GRDEDIT_C {	/* -C */
 		bool active;
 	} C;
-	struct D {	/* -D[+x<xname>][+yyname>][+z<zname>][+s<scale>][+ooffset>][+n<invalid>][+t<title>][+r<remark>] */
+	struct GRDEDIT_D {	/* -D[+x<xname>][+yyname>][+z<zname>][+s<scale>][+ooffset>][+n<invalid>][+t<title>][+r<remark>] */
 		bool active;
 		char *information;
 	} D;
-	struct E {	/* -E[a|h|l|r|t|v] */
+	struct GRDEDIT_E {	/* -E[a|h|l|r|t|v] */
 		bool active;
 		char mode;	/* l rotate 90 degrees left (CCW), t = transpose, r = rotate 90 degrees right (CW) */
 				/* a rotate around (180), h flip grid horizontally (FLIPLR), v flip grid vertically (FLIPUD) */
 	} E;
-	struct G {
+	struct GRDEDIT_G {
 		bool active;
 		char *file;
 	} G;
-	struct L {	/* -L[+n|p] */
+	struct GRDEDIT_L {	/* -L[+n|p] */
 		bool active;
 		int mode;
 	} L;
-	struct N {	/* N<xyzfile> */
+	struct GRDEDIT_N {	/* N<xyzfile> */
 		bool active;
 		char *file;
 	} N;
-	struct S {	/* -S */
+	struct GRDEDIT_S {	/* -S */
 		bool active;
 	} S;
-	struct T {	/* -T */
+	struct GRDEDIT_T {	/* -T */
 		bool active;
 	} T;
 };
 
-GMT_LOCAL void *New_Ctrl (struct GMT_CTRL *GMT) {	/* Allocate and initialize a new control structure */
+static void *New_Ctrl (struct GMT_CTRL *GMT) {	/* Allocate and initialize a new control structure */
 	struct GRDEDIT_CTRL *C;
 
 	C = gmt_M_memory (GMT, NULL, 1, struct GRDEDIT_CTRL);
@@ -91,7 +91,7 @@ GMT_LOCAL void *New_Ctrl (struct GMT_CTRL *GMT) {	/* Allocate and initialize a n
 	return (C);
 }
 
-GMT_LOCAL void Free_Ctrl (struct GMT_CTRL *GMT, struct GRDEDIT_CTRL *C) {	/* Deallocate control structure */
+static void Free_Ctrl (struct GMT_CTRL *GMT, struct GRDEDIT_CTRL *C) {	/* Deallocate control structure */
 	if (!C) return;
 	gmt_M_str_free (C->In.file);
 	gmt_M_str_free (C->D.information);
@@ -100,7 +100,7 @@ GMT_LOCAL void Free_Ctrl (struct GMT_CTRL *GMT, struct GRDEDIT_CTRL *C) {	/* Dea
 	gmt_M_free (GMT, C);
 }
 
-GMT_LOCAL int usage (struct GMTAPI_CTRL *API, int level) {
+static int usage (struct GMTAPI_CTRL *API, int level) {
 	const char *name = gmt_show_name_and_purpose (API, THIS_MODULE_LIB, THIS_MODULE_CLASSIC_NAME, THIS_MODULE_PURPOSE);
 	if (level == GMT_MODULE_PURPOSE) return (GMT_NOERROR);
 	GMT_Message (API, GMT_TIME_NONE, "usage: %s <grid> [-A] [-C] [%s]\n", name, GMT_GRDEDIT);
@@ -139,7 +139,7 @@ GMT_LOCAL int usage (struct GMTAPI_CTRL *API, int level) {
 	return (GMT_MODULE_USAGE);
 }
 
-GMT_LOCAL int parse (struct GMT_CTRL *GMT, struct GRDEDIT_CTRL *Ctrl, struct GMT_OPTION *options) {
+static int parse (struct GMT_CTRL *GMT, struct GRDEDIT_CTRL *Ctrl, struct GMT_OPTION *options) {
 
 	/* This parses the options provided to grdedit and sets parameters in Ctrl.
 	 * Note Ctrl has already been initialized and non-zero default values set.
@@ -396,6 +396,11 @@ EXTERN_MSC int GMT_grdedit (void *V_API, int mode, void *args) {
 					break;
 				continue;	/* Go back and read the next record */
 			}
+			if (In->data == NULL) {
+				gmt_quit_bad_record (API, In);
+				Return (API->error);
+			}
+			
 			in = In->data;	/* Only need to process numerical part here */
 
 			/* Data record to process */

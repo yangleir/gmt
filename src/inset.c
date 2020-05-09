@@ -45,35 +45,35 @@
 #define INSET_END		0
 
 struct INSET_CTRL {
-	struct In {	/* begin | end */
+	struct INSET_In {	/* begin | end */
 		bool active;
 		unsigned int mode;	/* INSET_BEGIN|END*/
 	} In;
-	struct D {	/* -D[g|j|n|x]<refpoint>+w<width>[/<height>][+j<justify>[+o<dx>[/<dy>]][+t] or <xmin>/<xmax>/<ymin>/<ymax>[+r][+t][+u] */
+	struct INSET_D {	/* -D[g|j|n|x]<refpoint>+w<width>[/<height>][+j<justify>[+o<dx>[/<dy>]][+t] or <xmin>/<xmax>/<ymin>/<ymax>[+r][+t][+u] */
 		bool active;
 		struct GMT_MAP_INSET inset;
 	} D;
-	struct F {	/* -F[+c<clearance>][+g<fill>][+i[<off>/][<pen>]][+p[<pen>]][+r[<radius>]][+s[<dx>/<dy>/][<shade>]][+d] */
+	struct INSET_F {	/* -F[+c<clearance>][+g<fill>][+i[<off>/][<pen>]][+p[<pen>]][+r[<radius>]][+s[<dx>/<dy>/][<shade>]][+d] */
 		bool active;
 		/* The panel is a member of GMT_MAP_INSET */
 	} F;
-	struct M {	/* -M<margin> | <xmargin>/<ymargin>  | <wmargin>/<emargin>/<smargin>/<nmargin>  */
+	struct INSET_M {	/* -M<margin> | <xmargin>/<ymargin>  | <wmargin>/<emargin>/<smargin>/<nmargin>  */
 		bool active;
 		double margin[4];
 	} M;
-	struct N {	/* -N  (no clip) */
+	struct INSET_N {	/* -N  (no clip) */
 		bool active;
 	} N;
 };
 
-GMT_LOCAL void *New_Ctrl (struct GMT_CTRL *GMT) {	/* Allocate and initialize a new control structure */
+static void *New_Ctrl (struct GMT_CTRL *GMT) {	/* Allocate and initialize a new control structure */
 	struct INSET_CTRL *C;
 
 	C = gmt_M_memory (GMT, NULL, 1, struct INSET_CTRL);
 	return (C);
 }
 
-GMT_LOCAL void Free_Ctrl (struct GMT_CTRL *GMT, struct INSET_CTRL *C) {	/* Deallocate control structure */
+static void Free_Ctrl (struct GMT_CTRL *GMT, struct INSET_CTRL *C) {	/* Deallocate control structure */
 	gmt_M_unused (GMT);
 	if (!C) return;
 	if (C->D.inset.refpoint) gmt_free_refpoint (GMT, &C->D.inset.refpoint);
@@ -81,7 +81,7 @@ GMT_LOCAL void Free_Ctrl (struct GMT_CTRL *GMT, struct INSET_CTRL *C) {	/* Deall
 	gmt_M_free (GMT, C);
 }
 
-GMT_LOCAL int usage (struct GMTAPI_CTRL *API, int level) {
+static int usage (struct GMTAPI_CTRL *API, int level) {
 	const char *name = gmt_show_name_and_purpose (API, THIS_MODULE_LIB, THIS_MODULE_CLASSIC_NAME, THIS_MODULE_PURPOSE);
 	if (level == GMT_MODULE_PURPOSE) return (GMT_NOERROR);
 	GMT_Message (API, GMT_TIME_NONE, "usage: %s begin -D%s |\n\t-D%s\n", name, GMT_INSET_A, GMT_INSET_B);
@@ -101,7 +101,7 @@ GMT_LOCAL int usage (struct GMTAPI_CTRL *API, int level) {
 	return (GMT_MODULE_USAGE);
 }
 
-GMT_LOCAL int parse (struct GMT_CTRL *GMT, struct INSET_CTRL *Ctrl, struct GMT_OPTION *options) {
+static int parse (struct GMT_CTRL *GMT, struct INSET_CTRL *Ctrl, struct GMT_OPTION *options) {
 
 	/* This parses the options provided to inset and sets parameters in CTRL.
 	 * Any GMT common options will override values set previously by other commands.

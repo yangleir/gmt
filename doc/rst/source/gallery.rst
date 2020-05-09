@@ -30,26 +30,3 @@ complex illustration.
    :glob:
 
    gallery/ex*
-
-Animations
-----------
-
-.. cssclass:: gmtgallary
-
-.. jinja::
-
-    {% for i in range(1, 9) %}
-    {% set i = '%02d' % i %}
-    -  .. figure:: /_images/anim{{i}}.*
-          :target: ./gallery/anim{{i}}.html
-
-          :ref:`anim{{i}}`
-
-    {% endfor %}
-
-.. toctree::
-   :hidden:
-   :glob:
-
-   gallery/anim-introduction.rst
-   gallery/anim*

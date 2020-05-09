@@ -1,5 +1,5 @@
-Introduction
-=============
+Animations
+==========
 
 Here we will explore what is
 involved in creating animations (i.e., movies). Of course, an animation
@@ -20,3 +20,49 @@ thousands of frames at HD or 4k resolution.  **Note**: Several of the movie
 examples have been purposefully made simpler by selecting lower frame rates
 and coarser grids so that the automatic building of the documentation (which
 includes the animations) does not take excessive time.
+
+.. cssclass:: gmtgallary
+
+.. jinja::
+
+    {% for i in range(1, 6) %}
+    {% set i = '%02d' % i %}
+    -  .. figure:: /_images/anim{{i}}.*
+          :target: ./animations/anim{{i}}.html
+
+          :ref:`anim{{i}}`
+
+    {% endfor %}
+
+.. cssclass:: gmtmovie
+
+- .. youtube:: 3vB53hoLsls
+     :width: 100%
+
+  :doc:`/animations/anim06`
+
+- .. youtube:: KfBwQlyjz5w
+     :width: 100%
+
+  :doc:`/animations/anim07`
+
+- .. youtube:: H0RyjHRhJ3g
+     :width: 100%
+
+  :doc:`/animations/anim08`
+
+- .. youtube:: LTxlR5LuJ8g
+     :width: 100%
+
+  :doc:`/animations/anim09`
+
+- .. youtube:: FLzYVo7wXAg
+     :width: 100%
+
+  :doc:`/animations/anim10`
+
+.. toctree::
+   :hidden:
+   :glob:
+
+   animations/anim*

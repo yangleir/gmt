@@ -114,9 +114,6 @@ struct CPT_Z_SCALE {
 	double z_unit_to_meter;	/* Scale, given z_unit, to convert z from <unit> to meters */
 };
 
-EXTERN_MSC double gmt_distance_type (struct GMT_CTRL *GMT, double lonS, double latS, double lonE, double latE, int id);
-EXTERN_MSC char * gmtlib_getuserpath (struct GMT_CTRL *GMT, const char *stem, char *path);	/* Look for user file */
-
 static char *GMT_just_code[12] = {"--", "LB", "CB", "RB", "--", "LM", "CM", "RM", "--", "LT", "CT", "RT"};
 
 #define gmt_M_uneven_interval(unit) ((unit == 'o' || unit == 'O' || unit == 'k' || unit == 'K' || unit == 'R' || unit == 'r' || unit == 'D' || unit == 'd') ? true : false)	/* true for uneven units */
@@ -2626,8 +2623,8 @@ GMT_LOCAL void gmtsupport_hold_contour_sub (struct GMT_CTRL *GMT, double **xxx, 
 			if (G->dist_kind == 1 || G->label_type == GMT_LABEL_IS_MDIST) {
 				lon[0] = lon[1];	lat[0] = lat[1];
 				gmt_xy_to_geo (GMT, &lon[1], &lat[1], xx[i], yy[i]);
-				if (G->dist_kind == 1) step = gmt_distance_type (GMT, lon[0], lat[0], lon[1], lat[1], GMT_CONT_DIST);
-				if (G->label_type == GMT_LABEL_IS_MDIST) stept = gmt_distance_type (GMT, lon[0], lat[0], lon[1], lat[1], GMT_LABEL_DIST);
+				if (G->dist_kind == 1) step = gmtlib_distance_type (GMT, lon[0], lat[0], lon[1], lat[1], GMT_CONT_DIST);
+				if (G->label_type == GMT_LABEL_IS_MDIST) stept = gmtlib_distance_type (GMT, lon[0], lat[0], lon[1], lat[1], GMT_LABEL_DIST);
 			}
 			if (radii[i] < G->min_radius) step = stept = 0.0;	/* If curvature is too great we simply don't add up distances */
 			track_dist[i] = track_dist[i-1] + step;
@@ -2946,7 +2943,7 @@ GMT_LOCAL void gmtsupport_decorated_line_sub (struct GMT_CTRL *GMT, double *xx, 
 		if (G->dist_kind == 1) {	/* Wanted spacing in map distance units */
 			lon[0] = lon[1];	lat[0] = lat[1];
 			gmt_xy_to_geo (GMT, &lon[1], &lat[1], xx[i], yy[i]);
-			if (G->dist_kind == 1) step = gmt_distance_type (GMT, lon[0], lat[0], lon[1], lat[1], GMT_CONT_DIST);
+			if (G->dist_kind == 1) step = gmtlib_distance_type (GMT, lon[0], lat[0], lon[1], lat[1], GMT_CONT_DIST);
 		}
 		track_dist[i] = track_dist[i-1] + step;
 		value_dist[i] = value_dist[i-1] + stept;
@@ -5772,8 +5769,7 @@ void gmtlib_free_list (struct GMT_CTRL *GMT, char **list, uint64_t n) {
 
 #ifndef WIN32
 /*! . */
-GMT_LOCAL int gmtsupport_globerr (const char *path, int eerrno)
-{
+GMT_LOCAL int gmtsupport_globerr (const char *path, int eerrno) {
 	fprintf (stderr, "gmtlib_glob_list: %s: %s\n", path, strerror(eerrno));
 	return 0;	/* let glob() keep going */
 }
@@ -6499,8 +6495,12 @@ char *gmt_putfont (struct GMT_CTRL *GMT, struct GMT_FONT *F) {
 
 	static char text[GMT_BUFSIZ];
 
-	if (F->form & 2)
-		snprintf (text, GMT_BUFSIZ, "%gp,%s,%s=%s", F->size, GMT->session.font[F->id].name, gmtlib_putfill (GMT, &F->fill), gmt_putpen (GMT, &F->pen));
+	if (F->form & 2) {
+		if (F->form & 8)
+			snprintf (text, GMT_BUFSIZ, "%gp,%s,%s=~%s", F->size, GMT->session.font[F->id].name, gmtlib_putfill (GMT, &F->fill), gmt_putpen (GMT, &F->pen));
+		else
+			snprintf (text, GMT_BUFSIZ, "%gp,%s,%s=%s", F->size, GMT->session.font[F->id].name, gmtlib_putfill (GMT, &F->fill), gmt_putpen (GMT, &F->pen));
+	}
 	else
 		snprintf (text, GMT_BUFSIZ, "%gp,%s,%s", F->size, GMT->session.font[F->id].name, gmtlib_putfill (GMT, &F->fill));
 	return (text);
@@ -7928,7 +7928,7 @@ struct GMT_PALETTE *gmt_get_palette (struct GMT_CTRL *GMT, char *file, enum GMT_
 			return (NULL);
 		}
 		if (zmax <= zmin) {	/* Safety valve 2 */
-			GMT_Report (GMT->parent, GMT_MSG_ERROR, "Passing max <= zmin prevents automatic CPT generation!\n");
+			GMT_Report (GMT->parent, GMT_MSG_ERROR, "Passing zmax <= zmin prevents automatic CPT generation!\n");
 			return (NULL);
 		}
 
@@ -12946,7 +12946,7 @@ char *gmt_first_modifier (struct GMT_CTRL *GMT, char *string, const char *sep) {
 		if (strchr (sep, string[k]))
 			done = true;
 		else {
-			if (isalpha (string[k])) GMT_Report (GMT->parent, GMT_MSG_WARNING, "Modifier +%c found but not a valid modifier! - ignored\n", string[k]);
+			if (isalpha (string[k])) GMT_Report (GMT->parent, GMT_MSG_WARNING, "Modifier +%c detected but not a valid modifier! - ignored\n", string[k]);
 			return NULL;
 		}
 	}
@@ -13964,7 +13964,7 @@ unsigned int gmtlib_time_array (struct GMT_CTRL *GMT, double min, double max, st
 }
 
 /*! . */
-unsigned int gmt_load_custom_annot (struct GMT_CTRL *GMT, struct GMT_PLOT_AXIS *A, char item, double **xx, char ***labels) {
+unsigned int gmtlib_load_custom_annot (struct GMT_CTRL *GMT, struct GMT_PLOT_AXIS *A, char item, double **xx, char ***labels) {
 	/* Reads a file with one or more records of the form
 	 * value	types	[label]
 	 * where value is the coordinate of the tickmark, types is a combination
@@ -14044,7 +14044,7 @@ unsigned int gmtlib_coordinate_array (struct GMT_CTRL *GMT, double min, double m
 	if (!T->active) return (0);	/* Nothing to do */
 
 	if (T->special && GMT->current.map.frame.axis[T->parent].file_custom) {	/* Want custom intervals */
-		n = gmt_load_custom_annot (GMT, &GMT->current.map.frame.axis[T->parent], (char)tolower((unsigned char) T->type), array, labels);
+		n = gmtlib_load_custom_annot (GMT, &GMT->current.map.frame.axis[T->parent], (char)tolower((unsigned char) T->type), array, labels);
 		return (n);
 	}
 
@@ -16659,3 +16659,147 @@ char * gmt_add_options (struct GMT_CTRL *GMT, const char *list) {
 	return (opts);
 }
 #endif
+
+/*! . */
+GMT_LOCAL int gmtsupport_sort_moduleinfo (const void *p_1, const void *p_2) {
+	const struct GMT_MODULEINFO *point_1 = (const struct GMT_MODULEINFO *)p_1, *point_2 = (const struct GMT_MODULEINFO *)p_2;
+	int res = strcmp (point_1->mname, point_2->mname);
+	if (res < 0) return -1;
+	if (res > 0) return +1;
+	return 0;
+}
+
+int gmt_write_glue_function (struct GMTAPI_CTRL *API, char* library) {
+	/* Called when we get gmt --new-glue=library is run, e.g.,
+	 * 	gmt --new-glue=mbsystem > gmt_mbsystem_glue.c
+	 */
+
+	char **C = NULL, *lib_purpose = NULL;
+	char line[BUFSIZ] = {""}, argument[GMT_LEN256] = {""};
+	bool first, first_purpose = true;
+	int error = GMT_NOERROR, k = 0, n_alloc = 0, n = -1;	/* Advance to 0 for first item */
+	FILE *fp = NULL;
+	struct GMT_MODULEINFO *M = NULL;
+
+	if ((C = gmtlib_get_dir_list (API->GMT, ".", ".c")) == NULL) {
+		GMT_Report (API, GMT_MSG_ERROR, "No C files found in current directory\n");
+		return GMT_RUNTIME_ERROR;
+	}
+	while (C[k]) {	/* A NULL marks the end of files */
+		if ((fp = fopen (C[k], "r")) == NULL) {
+			GMT_Report (API, GMT_MSG_ERROR, "Unable to open file %s for reading - permission problem?\n", C[k]);
+			error = GMT_RUNTIME_ERROR;
+			goto CROAK;
+		}
+		first = true;	/* Reset for each new C file */
+		while (fgets (line, BUFSIZ, fp)) {	/* This leaves the trailing linefeed intact */
+			if (strncmp (line, "#define THIS_MODULE_", 20U)) continue;	/* Not found our lines yet */
+			if (first) {	/* First time we passed the above if-test */
+				n++, first = false;
+			}
+			if (n >= n_alloc) {	/* Need to allocate more memory */
+				n_alloc += 50;
+				M = gmt_M_memory (API->GMT, M, n_alloc, struct GMT_MODULEINFO);
+			}
+			/* Here we know we are looking at one of the preprocessor directives of interest */
+			sscanf (line, "%*s %*s %[^\n]\n", argument);	/* Extract the argument */
+			if (!strncmp (line, "#define THIS_MODULE_MODERN_NAME", 31U))
+				M[n].mname = strdup (argument);
+			else if (!strncmp (line, "#define THIS_MODULE_CLASSIC_NAME", 32U))
+				M[n].cname = strdup (argument);
+			else if (!strncmp (line, "#define THIS_MODULE_NAME", 24U)) {
+				M[n].mname = strdup (argument);
+				M[n].cname = strdup (argument);
+			}
+			else if (!strncmp (line, "#define THIS_MODULE_LIB", 23U))
+				M[n].component = strdup (argument);
+			else if (!strncmp (line, "#define THIS_MODULE_PURPOSE", 27U))
+				M[n].purpose = strdup (argument);
+			else if (!strncmp (line, "#define THIS_MODULE_KEYS", 24U))
+				M[n].keys = strdup (argument);
+			else if (!strncmp (line, "#define THIS_MODULE_LIB_PURPOSE", 31U) && first_purpose) {
+				lib_purpose = strdup (argument);
+				first_purpose = false;
+			}
+		}
+		if (M[n].mname == NULL && M[n].cname == NULL && M[n].component == NULL && M[n].purpose == NULL && M[n].keys == NULL) { /* Not a module file */
+			n--;	/* Counteract the n++ that will happen in the next file */
+			GMT_Report (API, GMT_MSG_WARNING, "File %s had incomplete set of #define THIS_MODULE_* parameters; file skipped.\n", C[k]);
+		}
+		fclose (fp);
+		k++;	/* Go to next file */
+	}
+
+	if (n == -1) {
+		GMT_Report (API, GMT_MSG_ERROR, "No module files found in current directory\n");
+		error = GMT_RUNTIME_ERROR;
+		goto CROAK;
+	}
+
+	n++;
+	GMT_Report (API, GMT_MSG_INFORMATION, "%d %s module files found in current directory\n", n, library);
+
+	if (first_purpose) {
+		GMT_Report (API, GMT_MSG_WARNING, "No #define THIS_MODULE_LIB_PURPOSE setting found in any module.  Please edit argument in gmtlib_%s_show_all\n", library);
+		sprintf (line, "GMT %s: The third-party supplements to the Generic Mapping Tools", library);
+		lib_purpose = strdup (line);
+		GMT_Report (API, GMT_MSG_WARNING, "Default purpose assigned: %s\n", lib_purpose);
+	}
+
+	qsort (M, n, sizeof (struct GMT_MODULEINFO), gmtsupport_sort_moduleinfo);
+
+	printf ("/*\n * Copyright (c) 2012-2020 by the GMT Team (https://www.generic-mapping-tools.org/team.html)\n");
+	printf (" * See LICENSE.TXT file for copying and redistribution conditions.\n */\n");
+	printf ("/* gmt_%s_glue.c populates the external array of this shared lib with\n", library);
+	printf (" * module parameters such as name, group, purpose and keys strings.\n");
+	printf (" * This file also contains the following convenience functions to\n");
+	printf (" * display all module purposes, list their names, or return keys or group:\n *\n");
+	printf (" *   int %s_module_show_all    (void *API);\n", library);
+	printf (" *   int %s_module_list_all    (void *API);\n", library);
+	printf (" *   int %s_module_classic_all (void *API);\n *\n", library);
+	printf (" * These functions may be called by gmt --help and gmt --show-modules\n *\n");
+	printf (" * Developers of external APIs for accessing GMT modules will use this\n");
+	printf (" * function indirectly via GMT_Encode_Options to retrieve option keys\n");
+	printf (" * needed for module arg processing:\n *\n");
+	printf (" *   const char * %s_module_keys  (void *API, char *candidate);\n", library);
+	printf (" *   const char * %s_module_group (void *API, char *candidate);\n *\n", library);
+	printf (" * All functions are exported by the shared %s library so that gmt can call these\n", library);
+	printf (" * functions by name to learn about the contents of the library.\n */\n\n");
+	printf ("#include \"gmt_dev.h\"\n\n");
+	printf ("/* Sorted array with information for all GMT %s modules */\n", library);
+	printf ("static struct GMT_MODULEINFO modules[] = {\n");
+	for (k = 0; k < n; k++)
+		printf ("\t{%s, %s, %s, %s, %s},\n", M[k].mname, M[k].cname, M[k].component, M[k].purpose, M[k].keys);
+	printf ("\t{NULL, NULL, NULL, NULL, NULL} /* last element == NULL detects end of array */\n");
+	printf ("};\n\n");
+	printf ("/* Pretty print all shared module names and their purposes for gmt --help */\n");
+	printf ("EXTERN_MSC int %s_module_show_all (void *API) {\n", library);
+	printf ("\treturn (GMT_Show_ModuleInfo (API, modules, \"%s\", GMT_MODULE_HELP));\n}\n\n", lib_purpose);
+	printf ("/* Produce single list on stdout of all shared module names for gmt --show-modules */\n");
+	printf ("EXTERN_MSC int %s_module_list_all (void *API) {\n", library);
+	printf ("\treturn (GMT_Show_ModuleInfo (API, modules, NULL, GMT_MODULE_SHOW_MODERN));\n}\n\n");
+	printf ("/* Produce single list on stdout of all shared module names for gmt --show-classic [i.e., classic mode names] */\n");
+	printf ("EXTERN_MSC int %s_module_classic_all (void *API) {\n", library);
+	printf ("\treturn (GMT_Show_ModuleInfo (API, modules, NULL, GMT_MODULE_SHOW_CLASSIC));\n}\n\n");
+	printf ("/* Lookup module id by name, return option keys pointer (for external API developers) */\n");
+	printf ("EXTERN_MSC const char *%s_module_keys (void *API, char *candidate) {\n", library);
+	printf ("\treturn (GMT_Get_ModuleInfo (API, modules, candidate, GMT_MODULE_KEYS));\n}\n\n");
+	printf ("/* Lookup module id by name, return group char name (for external API developers) */\n");
+	printf ("EXTERN_MSC const char *%s_module_group (void *API, char *candidate) {\n", library);
+	printf ("\treturn (GMT_Get_ModuleInfo (API, modules, candidate, GMT_MODULE_GROUP));\n}\n");
+
+CROAK:	/* We are done or premature return due to error */
+
+	gmtlib_free_dir_list (API->GMT, &C);
+	for (k = 0; k < n; k++) {
+		gmt_M_str_free (M[k].mname);
+		gmt_M_str_free (M[k].cname);
+		gmt_M_str_free (M[k].component);
+		gmt_M_str_free (M[k].purpose);
+		gmt_M_str_free (M[k].keys);
+	}
+	gmt_M_free (API->GMT, M);
+	gmt_M_str_free (lib_purpose);
+
+	return (error);
+}

@@ -36,50 +36,50 @@
 /* Control structure for pspolar */
 
 struct PSPOLAR_CTRL {
-	struct C {	/* -C */
+	struct PSPOLAR_C {	/* -C */
 		bool active;
 		double lon, lat, size;
 		struct GMT_PEN pen;
 	} C;
-	struct D {	/* -D */
+	struct PSPOLAR_D {	/* -D */
 		bool active;
 		double lon, lat;
 	} D;
- 	struct E {	/* -E<fill> */
+ 	struct PSPOLAR_E {	/* -E<fill> */
 		bool active;
 		struct GMT_FILL fill;
 		struct GMT_PEN pen;
 	} E;
-	struct F {	/* -F<fill> */
+	struct PSPOLAR_F {	/* -F<fill> */
 		bool active;
 		struct GMT_FILL fill;
 		struct GMT_PEN pen;
 	} F;
- 	struct G {	/* -G<fill> */
+ 	struct PSPOLAR_G {	/* -G<fill> */
 		bool active;
 		struct GMT_FILL fill;
 		struct GMT_PEN pen;
 	} G;
-	struct M {	/* -M<scale>[+m<magnitude>] */
+	struct PSPOLAR_M {	/* -M<scale>[+m<magnitude>] */
 		bool active;
 		double ech;
 	} M;
-	struct N {	/* -N */
+	struct PSPOLAR_N {	/* -N */
 		bool active;
 	} N;
-	struct Q {	/* Repeatable: -Q<mode>[<args>] for various symbol parameters */
+	struct PSPOLAR_Q {	/* Repeatable: -Q<mode>[<args>] for various symbol parameters */
 		bool active;
 	} Q;
-	struct H2 {	/* -Qh for Hypo71 */
+	struct PSPOLAR_H2 {	/* -Qh for Hypo71 */
 		bool active;
 	} H2;
-	struct S {	/* -S<symbol><size>[c|i|p] */
+	struct PSPOLAR_S {	/* -S<symbol><size>[c|i|p] */
 		bool active;
 		int symbol;
 		double size;
 		struct GMT_FILL fill;
 	} S;
-	struct S2 {	/* -Qs<half-size>[+v<size>[+<specs>] */
+	struct PSPOLAR_S2 {	/* -Qs<half-size>[+v<size>[+<specs>] */
 		bool active;
 		bool scolor;
 		bool vector;
@@ -92,7 +92,7 @@ struct PSPOLAR_CTRL {
 		struct GMT_FILL fill;
 		struct GMT_SYMBOL S;
 	} S2;
-	struct T { /* New syntax: -T+a<angle>+j<justify>+o<dx>/<dy>+f<font> */
+	struct PSPOLAR_T { /* New syntax: -T+a<angle>+j<justify>+o<dx>/<dy>+f<font> */
 		bool active;
 		double angle;
 		int justify;
@@ -100,13 +100,13 @@ struct PSPOLAR_CTRL {
 		struct GMT_FONT font;
 		int form; /* for back-compatibility only */
  	} T;
-	struct W {	/* -W<pen> */
+	struct PSPOLAR_W {	/* -W<pen> */
 		bool active;
 		struct GMT_PEN pen;
 	} W;
 };
 
-GMT_LOCAL void *New_Ctrl (struct GMT_CTRL *GMT) {	/* Allocate and initialize a new control structure */
+static void *New_Ctrl (struct GMT_CTRL *GMT) {	/* Allocate and initialize a new control structure */
 	struct PSPOLAR_CTRL *C;
 
 	C = gmt_M_memory (GMT, NULL, 1, struct PSPOLAR_CTRL);
@@ -125,12 +125,12 @@ GMT_LOCAL void *New_Ctrl (struct GMT_CTRL *GMT) {	/* Allocate and initialize a n
 	return (C);
 }
 
-GMT_LOCAL void Free_Ctrl (struct GMT_CTRL *GMT, struct PSPOLAR_CTRL *C) {	/* Deallocate control structure */
+static void Free_Ctrl (struct GMT_CTRL *GMT, struct PSPOLAR_CTRL *C) {	/* Deallocate control structure */
 	if (!C) return;
 	gmt_M_free (GMT, C);
 }
 
-GMT_LOCAL int usage (struct GMTAPI_CTRL *API, int level) {
+static int usage (struct GMTAPI_CTRL *API, int level) {
 	/* This displays the pspolar synopsis and optionally full usage information */
 
 	const char *name = gmt_show_name_and_purpose (API, THIS_MODULE_LIB, THIS_MODULE_CLASSIC_NAME, THIS_MODULE_PURPOSE);
@@ -237,7 +237,7 @@ GMT_LOCAL unsigned int pspolar_old_Q_parser (struct GMT_CTRL *GMT, char *arg, st
 
 }
 
-GMT_LOCAL int parse (struct GMT_CTRL *GMT, struct PSPOLAR_CTRL *Ctrl, struct GMT_OPTION *options) {
+static int parse (struct GMT_CTRL *GMT, struct PSPOLAR_CTRL *Ctrl, struct GMT_OPTION *options) {
 	/* This parses the options provided to pspolar and sets parameters in Ctrl.
 	 * Note Ctrl has already been initialized and non-zero default values set.
 	 * Any GMT common options will override values set previously by other commands.

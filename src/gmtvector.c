@@ -49,35 +49,35 @@ enum gmtvector_method {	/* The available methods */
 	DO_BISECTOR};
 
 struct GMTVECTOR_CTRL {
-	struct Out {	/* -> */
+	struct GMTVECTOR_Out {	/* -> */
 		bool active;
 		char *file;
 	} Out;
-	struct In {	/* infile */
+	struct GMTVECTOR_In {	/* infile */
 		bool active;
 		unsigned int n_args;
 		char *arg;
 	} In;
-	struct A {	/* -A[m[<conf>]|<vec>] */
+	struct GMTVECTOR_A {	/* -A[m[<conf>]|<vec>] */
 		bool active;
 		unsigned int mode;
 		double conf;
 		char *arg;
 	} A;
-	struct C {	/* -C[i|o] */
+	struct GMTVECTOR_C {	/* -C[i|o] */
 		bool active[2];
 	} C;
-	struct E {	/* -E */
+	struct GMTVECTOR_E {	/* -E */
 		bool active;
 	} E;
-	struct N {	/* -N */
+	struct GMTVECTOR_N {	/* -N */
 		bool active;
 	} N;
-	struct S {	/* -S[vec] */
+	struct GMTVECTOR_S {	/* -S[vec] */
 		bool active;
 		char *arg;
 	} S;
-	struct T {	/* -T[operator] */
+	struct GMTVECTOR_T {	/* -T[operator] */
 		bool active;
 		bool degree;
 		enum gmtvector_method mode;
@@ -85,7 +85,7 @@ struct GMTVECTOR_CTRL {
 	} T;
 };
 
-GMT_LOCAL void *New_Ctrl (struct GMT_CTRL *GMT) {	/* Allocate and initialize a new control structure */
+static void *New_Ctrl (struct GMT_CTRL *GMT) {	/* Allocate and initialize a new control structure */
 	struct GMTVECTOR_CTRL *C;
 
 	C = gmt_M_memory (GMT, NULL, 1, struct GMTVECTOR_CTRL);
@@ -95,7 +95,7 @@ GMT_LOCAL void *New_Ctrl (struct GMT_CTRL *GMT) {	/* Allocate and initialize a n
 	return (C);
 }
 
-GMT_LOCAL void Free_Ctrl (struct GMT_CTRL *GMT, struct GMTVECTOR_CTRL *C) {	/* Deallocate control structure */
+static void Free_Ctrl (struct GMT_CTRL *GMT, struct GMTVECTOR_CTRL *C) {	/* Deallocate control structure */
 	if (!C) return;
 	gmt_M_str_free (C->In.arg);
 	gmt_M_str_free (C->Out.file);
@@ -104,7 +104,7 @@ GMT_LOCAL void Free_Ctrl (struct GMT_CTRL *GMT, struct GMTVECTOR_CTRL *C) {	/* D
 	gmt_M_free (GMT, C);
 }
 
-GMT_LOCAL int usage (struct GMTAPI_CTRL *API, int level) {
+static int usage (struct GMTAPI_CTRL *API, int level) {
 	const char *name = gmt_show_name_and_purpose (API, THIS_MODULE_LIB, THIS_MODULE_CLASSIC_NAME, THIS_MODULE_PURPOSE);
 	if (level == GMT_MODULE_PURPOSE) return (GMT_NOERROR);
 	GMT_Message (API, GMT_TIME_NONE, "usage: %s [<table>] [-A[m][<conf>]|<vector>] [-C[i|o]] [-E] [-N] [-S<vector>]\n", name);
@@ -147,7 +147,7 @@ GMT_LOCAL int usage (struct GMTAPI_CTRL *API, int level) {
 	return (GMT_MODULE_USAGE);
 }
 
-GMT_LOCAL int parse (struct GMT_CTRL *GMT, struct GMTVECTOR_CTRL *Ctrl, struct GMT_OPTION *options) {
+static int parse (struct GMT_CTRL *GMT, struct GMTVECTOR_CTRL *Ctrl, struct GMT_OPTION *options) {
 
 	/* This parses the options provided to grdsample and sets parameters in CTRL.
 	 * Any GMT common options will override values set previously by other commands.

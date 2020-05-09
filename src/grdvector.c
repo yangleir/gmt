@@ -35,54 +35,54 @@
 #define THIS_MODULE_OPTIONS "->BJKOPRUVXYfptxy" GMT_OPT("c")
 
 struct GRDVECTOR_CTRL {
-	struct In {
+	struct GRDVECTOR_In {
 		bool active;
 		char *file[2];
 	} In;
-	struct A {	/* -A */
+	struct GRDVECTOR_A {	/* -A */
 		bool active;
 	} A;
-	struct C {	/* -C<cpt>[+i<dz>] */
+	struct GRDVECTOR_C {	/* -C<cpt>[+i<dz>] */
 		bool active;
 		double dz;
 		char *file;
 	} C;
-	struct G {	/* -G<fill> */
+	struct GRDVECTOR_G {	/* -G<fill> */
 		bool active;
 		struct GMT_FILL fill;
 	} G;
-	struct I {	/* -I[x]<dx>[/<dy>] */
+	struct GRDVECTOR_I {	/* -I[x]<dx>[/<dy>] */
 		bool active;
 		unsigned int mode;
 	} I;
-	struct N {	/* -N */
+	struct GRDVECTOR_N {	/* -N */
 		bool active;
 	} N;
-	struct Q {	/* -Q<size>[+<mods>] */
+	struct GRDVECTOR_Q {	/* -Q<size>[+<mods>] */
 		bool active;
 		struct GMT_SYMBOL S;
 	} Q;
-	struct S {	/* -S[l|i]<length|scale>[<unit>] */
+	struct GRDVECTOR_S {	/* -S[l|i]<length|scale>[<unit>] */
 		bool active;
 		bool constant;
 		bool invert;
 		char unit;
 		double factor;
 	} S;
-	struct T {	/* -T */
+	struct GRDVECTOR_T {	/* -T */
 		bool active;
 	} T;
-	struct W {	/* -W<pen> */
+	struct GRDVECTOR_W {	/* -W<pen> */
 		bool active;
 		bool cpt_effect;
 		struct GMT_PEN pen;
 	} W;
-	struct Z {	/* -Z */
+	struct GRDVECTOR_Z {	/* -Z */
 		bool active;
 	} Z;
 };
 
-GMT_LOCAL void *New_Ctrl (struct GMT_CTRL *GMT) {	/* Allocate and initialize a new control structure */
+static void *New_Ctrl (struct GMT_CTRL *GMT) {	/* Allocate and initialize a new control structure */
 	struct GRDVECTOR_CTRL *C = NULL;
 	char unit[5] = "cimp";
 
@@ -97,7 +97,7 @@ GMT_LOCAL void *New_Ctrl (struct GMT_CTRL *GMT) {	/* Allocate and initialize a n
 	return (C);
 }
 
-GMT_LOCAL void Free_Ctrl (struct GMT_CTRL *GMT, struct GRDVECTOR_CTRL *C) {	/* Deallocate control structure */
+static void Free_Ctrl (struct GMT_CTRL *GMT, struct GRDVECTOR_CTRL *C) {	/* Deallocate control structure */
 	if (!C) return;
 	gmt_M_str_free (C->In.file[GMT_IN]);
 	gmt_M_str_free (C->In.file[GMT_OUT]);
@@ -105,7 +105,7 @@ GMT_LOCAL void Free_Ctrl (struct GMT_CTRL *GMT, struct GRDVECTOR_CTRL *C) {	/* D
 	gmt_M_free (GMT, C);
 }
 
-GMT_LOCAL int usage (struct GMTAPI_CTRL *API, int level) {
+static int usage (struct GMTAPI_CTRL *API, int level) {
 	const char *name = gmt_show_name_and_purpose (API, THIS_MODULE_LIB, THIS_MODULE_CLASSIC_NAME, THIS_MODULE_PURPOSE);
 	if (level == GMT_MODULE_PURPOSE) return (GMT_NOERROR);
 	GMT_Message (API, GMT_TIME_NONE, "usage: %s <gridx> <gridy> %s %s [-A] [%s]\n", name, GMT_J_OPT, GMT_Rgeo_OPT, GMT_B_OPT);
@@ -156,7 +156,7 @@ GMT_LOCAL int usage (struct GMTAPI_CTRL *API, int level) {
 	return (GMT_MODULE_USAGE);
 }
 
-GMT_LOCAL int parse (struct GMT_CTRL *GMT, struct GRDVECTOR_CTRL *Ctrl, struct GMT_OPTION *options) {
+static int parse (struct GMT_CTRL *GMT, struct GRDVECTOR_CTRL *Ctrl, struct GMT_OPTION *options) {
 	/* This parses the options provided to grdvector and sets parameters in Ctrl.
 	 * Note Ctrl has already been initialized and non-zero default values set.
 	 * Any GMT common options will override values set previously by other commands.

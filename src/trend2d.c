@@ -46,25 +46,25 @@
 struct TREND2D_CTRL {
 	unsigned int n_outputs;
 	bool weighted_output;
-	struct C {	/* -C<condition_#> */
+	struct TREND2D_C {	/* -C<condition_#> */
 		bool active;
 		double value;
 	} C;
-	struct F {	/* -F<xymrw>|p */
+	struct TREND2D_F {	/* -F<xymrw>|p */
 		bool active;
 		bool report;
 		char col[TREND2D_N_OUTPUT_CHOICES];	/* Character codes for desired output in the right order */
 	} F;
-	struct I {	/* -I[<confidence>] */
+	struct TREND2D_I {	/* -I[<confidence>] */
 		bool active;
 		double value;
 	} I;
-	struct N {	/* -N<n_model>[r] */
+	struct TREND2D_N {	/* -N<n_model>[r] */
 		bool active;
 		bool robust;
 		unsigned int value;
 	} N;
-	struct W {	/* -W[+s] */
+	struct TREND2D_W {	/* -W[+s] */
 		bool active;
 		unsigned int mode;
 	} W;
@@ -402,7 +402,7 @@ GMT_LOCAL void trend2d_solve_system (struct GMT_CTRL *GMT, double *gtg, double *
 	}
 }
 
-GMT_LOCAL void *New_Ctrl (struct GMT_CTRL *GMT) {	/* Allocate and initialize a new control structure */
+static void *New_Ctrl (struct GMT_CTRL *GMT) {	/* Allocate and initialize a new control structure */
 	struct TREND2D_CTRL *C = NULL;
 
 	C = gmt_M_memory (GMT, NULL, 1, struct TREND2D_CTRL);
@@ -413,12 +413,12 @@ GMT_LOCAL void *New_Ctrl (struct GMT_CTRL *GMT) {	/* Allocate and initialize a n
 	return (C);
 }
 
-GMT_LOCAL void Free_Ctrl (struct GMT_CTRL *GMT, struct TREND2D_CTRL *C) {	/* Deallocate control structure */
+static void Free_Ctrl (struct GMT_CTRL *GMT, struct TREND2D_CTRL *C) {	/* Deallocate control structure */
 	if (!C) return;
 	gmt_M_free (GMT, C);
 }
 
-GMT_LOCAL int usage (struct GMTAPI_CTRL *API, int level) {
+static int usage (struct GMTAPI_CTRL *API, int level) {
 	const char *name = gmt_show_name_and_purpose (API, THIS_MODULE_LIB, THIS_MODULE_CLASSIC_NAME, THIS_MODULE_PURPOSE);
 	if (level == GMT_MODULE_PURPOSE) return (GMT_NOERROR);
 	GMT_Message (API, GMT_TIME_NONE, "usage: %s [<table>] -F<xyzmrw>|p -N<n_model>[+r] [-C<condition_#>] [-I[<confidence>]]\n", name);
@@ -450,7 +450,7 @@ GMT_LOCAL int usage (struct GMTAPI_CTRL *API, int level) {
 	return (GMT_MODULE_USAGE);
 }
 
-GMT_LOCAL int parse (struct GMT_CTRL *GMT, struct TREND2D_CTRL *Ctrl, struct GMT_OPTION *options) {
+static int parse (struct GMT_CTRL *GMT, struct TREND2D_CTRL *Ctrl, struct GMT_OPTION *options) {
 	/* This parses the options provided to trend2d and sets parameters in CTRL.
 	 * Any GMT common options will override values set previously by other commands.
 	 * It also replaces any file names specified as input or output with the data ID

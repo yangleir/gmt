@@ -49,47 +49,47 @@
 #define THIS_MODULE_OPTIONS "-:RVabdefhirs" GMT_OPT("FH")
 
 struct SURFACE_CTRL {
-	struct A {	/* -A<aspect_ratio>|m */
+	struct SURFACE_OLD_A {	/* -A<aspect_ratio>|m */
 		bool active;
 		unsigned int mode;	/* 1 if we want cos(mid_latitude) */
 		double value;
 	} A;
-	struct C {	/* -C<converge_limit> */
+	struct SURFACE_OLD_C {	/* -C<converge_limit> */
 		bool active;
 		unsigned int mode;	/* 1 if given as fraction */
 		double value;
 	} C;
-	struct D {	/* -D<line.xyz> */
+	struct SURFACE_OLD_D {	/* -D<line.xyz> */
 		bool active;
 		char *file;	/* Name of file with breaklines */
 	} D;
-	struct G {	/* -G<file> */
+	struct SURFACE_OLD_G {	/* -G<file> */
 		bool active;
 		char *file;
 	} G;
-	struct L {	/* -Ll|u<limit> */
+	struct SURFACE_OLD_L {	/* -Ll|u<limit> */
 		bool active;
 		char *low, *high;
 		double min, max;
 		unsigned int lmode, hmode;
 	} L;
-	struct N {	/* -N<max_iterations> */
+	struct SURFACE_OLD_N {	/* -N<max_iterations> */
 		bool active;
 		unsigned int value;
 	} N;
-	struct Q {	/* -Q */
+	struct SURFACE_OLD_Q {	/* -Q */
 		bool active;
 	} Q;
-	struct S {	/* -S<radius>[m|s] */
+	struct SURFACE_OLD_S {	/* -S<radius>[m|s] */
 		bool active;
 		double radius;
 		char unit;
 	} S;
-	struct T {	/* -T<tension>[i][b] */
+	struct SURFACE_OLD_T {	/* -T<tension>[i][b] */
 		bool active;
 		double b_tension, i_tension;
 	} T;
-	struct Z {	/* -Z<over_relaxation_parameter> */
+	struct SURFACE_OLD_Z {	/* -Z<over_relaxation_parameter> */
 		bool active;
 		double value;
 	} Z;
@@ -1499,7 +1499,7 @@ GMT_LOCAL void surface_interpolate_add_breakline (struct GMT_CTRL *GMT, struct S
 	gmt_M_free (GMT, z);
 }
 
-GMT_LOCAL void *New_Ctrl (struct GMT_CTRL *GMT) {	/* Allocate and initialize a new control structure */
+static void *New_Ctrl (struct GMT_CTRL *GMT) {	/* Allocate and initialize a new control structure */
 	struct SURFACE_CTRL *C;
 
 	C = gmt_M_memory (GMT, NULL, 1, struct SURFACE_CTRL);
@@ -1512,7 +1512,7 @@ GMT_LOCAL void *New_Ctrl (struct GMT_CTRL *GMT) {	/* Allocate and initialize a n
 	return (C);
 }
 
-GMT_LOCAL void Free_Ctrl (struct GMT_CTRL *GMT, struct SURFACE_CTRL *C) {	/* Deallocate control structure */
+static void Free_Ctrl (struct GMT_CTRL *GMT, struct SURFACE_CTRL *C) {	/* Deallocate control structure */
 	if (!C) return;
 	gmt_M_str_free (C->G.file);
 	gmt_M_str_free (C->D.file);
@@ -1521,7 +1521,7 @@ GMT_LOCAL void Free_Ctrl (struct GMT_CTRL *GMT, struct SURFACE_CTRL *C) {	/* Dea
 	gmt_M_free (GMT, C);
 }
 
-GMT_LOCAL int usage (struct GMTAPI_CTRL *API, int level) {
+static int usage (struct GMTAPI_CTRL *API, int level) {
 	unsigned int ppm;
 	const char *name = gmt_show_name_and_purpose (API, THIS_MODULE_LIB, THIS_MODULE_CLASSIC_NAME, THIS_MODULE_PURPOSE);
 	if (level == GMT_MODULE_PURPOSE) return (GMT_NOERROR);
@@ -1578,7 +1578,7 @@ GMT_LOCAL int usage (struct GMTAPI_CTRL *API, int level) {
 	return (GMT_MODULE_USAGE);
 }
 
-GMT_LOCAL int parse (struct GMT_CTRL *GMT, struct SURFACE_CTRL *Ctrl, struct GMT_OPTION *options) {
+static int parse (struct GMT_CTRL *GMT, struct SURFACE_CTRL *Ctrl, struct GMT_OPTION *options) {
 	/* This parses the options provided to surface and sets parameters in CTRL.
 	 * Any GMT common options will override values set previously by other commands.
 	 * It also replaces any file names specified as input or output with the data ID

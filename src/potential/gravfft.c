@@ -55,66 +55,66 @@ struct GRAVFFT_CTRL {
 	unsigned int n_par;
 	double *par;
 
-	struct GRVF_In {
+	struct GRAVFFT_In {
 		bool active;
 		unsigned int n_grids;	/* 1 or 2 */
 		char *file[2];
 	} In;
-	struct GRVF_C {	/* -C<zlevel> */
+	struct GRAVFFT_C {	/* -C<zlevel> */
 		bool active;
 		unsigned int n_pt;
 		double theor_inc;
 	} C;
-	struct GRVF_D {	/* -D[<rho>|<rhofile>] */
+	struct GRAVFFT_D {	/* -D[<rho>|<rhofile>] */
 		bool active;
 		bool variable;
 		char *file;
 	} D;
-	struct GRVF_E {	/* -E */
+	struct GRAVFFT_E {	/* -E */
 		bool active;
 		unsigned int n_terms;
 	} E;
-	struct GRVF_F {	/* -F[f[+s]|b|g|e|n|v] */
+	struct GRAVFFT_F {	/* -F[f[+s]|b|g|e|n|v] */
 		bool active;
 		bool slab;
 		bool bouger;
 		unsigned int mode;
 	} F;
-	struct GRVF_G {	/* -G<outfile> */
+	struct GRAVFFT_G {	/* -G<outfile> */
 		bool active;
 		char *file;
 	} G;
-	struct GRVF_I {	/* -I[<scale>|g] */
+	struct GRAVFFT_I {	/* -I[<scale>|g] */
 		bool active;
 		double value;
 	} I;
-	struct GRVF_N {	/* -N[f|q|s<n_columns>/<n_rows>][+e|m|n][+t<width>][+w[<suffix>]][+z[p]]  */
+	struct GRAVFFT_N {	/* -N[f|q|s<n_columns>/<n_rows>][+e|m|n][+t<width>][+w[<suffix>]][+z[p]]  */
 		bool active;
 		struct GMT_FFT_INFO *info;
 	} N;
-	struct GRVF_Q {
+	struct GRAVFFT_Q {
 		bool active;
 	} Q;
-	struct GRVF_S {	/* -S<scale> */
+	struct GRAVFFT_S {	/* -S<scale> */
 		bool active;
 	} S;
-	struct GRVF_T {	/* -T<te/rl/rm/rw[/ri>][+m] */
+	struct GRAVFFT_T {	/* -T<te/rl/rm/rw[/ri>][+m] */
 		bool active, moho, approx;
 		double te, rhol, rhom, rhow, rhoi;
 		double rho_cw;		/* crust-water density contrast */
 		double rho_mc;		/* mantle-crust density contrast */
 		double rho_mw;		/* mantle-water density contrast */
 	} T;
-	struct GRVF_W {	/* Water depth/observation level */
+	struct GRAVFFT_W {	/* Water depth/observation level */
 		bool active;
 		double water_depth;	/* Reference water depth [0] */
 	} W;
-	struct GRVF_Z {
+	struct GRAVFFT_Z {
 		bool active;
 		double zm;		/* mean Moho depth (given by user) */
 		double zl;		/* mean depth of swell compensation (user given) */
 	} Z;
-	struct GRVF_misc {	/* -T */
+	struct GRAVFFT_misc {	/* -T */
 		bool coherence;
 		bool give_wavelength;
 		bool give_km;
@@ -136,7 +136,7 @@ struct GRAVFFT_CTRL {
 
 static bool sphericity = false;
 
-GMT_LOCAL void *New_Ctrl (struct GMT_CTRL *GMT) {	/* Allocate and initialize a new control structure */
+static void *New_Ctrl (struct GMT_CTRL *GMT) {	/* Allocate and initialize a new control structure */
 	struct GRAVFFT_CTRL *C = NULL;
 
 	C = gmt_M_memory (GMT, NULL, 1, struct GRAVFFT_CTRL);
@@ -147,7 +147,7 @@ GMT_LOCAL void *New_Ctrl (struct GMT_CTRL *GMT) {	/* Allocate and initialize a n
 	return (C);
 }
 
-GMT_LOCAL void Free_Ctrl (struct GMT_CTRL *GMT, struct GRAVFFT_CTRL *C) {	/* Deallocate control structure */
+static void Free_Ctrl (struct GMT_CTRL *GMT, struct GRAVFFT_CTRL *C) {	/* Deallocate control structure */
 	if (!C) return;
 	gmt_M_free (GMT, C->par);
 	gmt_M_str_free (C->In.file[0]);
@@ -175,7 +175,7 @@ GMT_LOCAL void gravfft_compute_only_admitts(struct GMT_CTRL *GMT, struct GRAVFFT
 GMT_LOCAL int gravfft_do_admittance(struct GMT_CTRL *GMT, struct GMT_GRID *Grid, struct GMT_GRID *GridB, struct GRAVFFT_CTRL *Ctrl,
                             struct GMT_FFT_WAVENUMBER *K);
 
-GMT_LOCAL int parse (struct GMT_CTRL *GMT, struct GRAVFFT_CTRL *Ctrl, struct GMT_OPTION *options) {
+static int parse (struct GMT_CTRL *GMT, struct GRAVFFT_CTRL *Ctrl, struct GMT_OPTION *options) {
 
 	unsigned int n_errors = 0;
 
@@ -415,7 +415,7 @@ GMT_LOCAL int parse (struct GMT_CTRL *GMT, struct GRAVFFT_CTRL *Ctrl, struct GMT
 	return (n_errors ? GMT_PARSE_ERROR : GMT_NOERROR);
 }
 
-GMT_LOCAL int usage (struct GMTAPI_CTRL *API, int level) {
+static int usage (struct GMTAPI_CTRL *API, int level) {
 	const char *name = gmt_show_name_and_purpose (API, THIS_MODULE_LIB, THIS_MODULE_CLASSIC_NAME, THIS_MODULE_PURPOSE);
 	if (level == GMT_MODULE_PURPOSE) return (GMT_NOERROR);
 	GMT_Message (API, GMT_TIME_NONE, "usage: %s <topo_grd> [<ingrid2>] -G<outgrid> [-C<n/wavelength/mean_depth/tbw>]\n", name);

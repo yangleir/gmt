@@ -88,7 +88,7 @@ enum GMT_mp_cols {	/* Index into the extra and ecol_type arrays */
 struct MAPPROJECT_CTRL {	/* All control options for this program (except common args) */
 	/* active is true if the option has been activated */
 	bool used[8];	/* Used to keep track of which items are used by -A,G,L,Z */
-	struct MAPPRJ_A {	/* -Ab|B|f|Fb|B|o|O<lon0>/<lat0> */
+	struct MAPPROJECT_A {	/* -Ab|B|f|Fb|B|o|O<lon0>/<lat0> */
 		bool active;
 		bool azims;
 		bool orient;	/* true if we want orientations, not azimuths */
@@ -97,63 +97,63 @@ struct MAPPROJECT_CTRL {	/* All control options for this program (except common 
 		unsigned int mode;
 		double lon, lat;	/* Fixed point of reference */
 	} A;
-	struct MAPPRJ_C {	/* -C[<false_easting>/<false_northing>] */
+	struct MAPPROJECT_C {	/* -C[<false_easting>/<false_northing>] */
 		bool active;
 		bool shift;
 		double easting, northing;	/* Shifts */
 	} C;
-	struct MAPPRJ_D {	/* -D<c|i|p> */
+	struct MAPPROJECT_D {	/* -D<c|i|p> */
 		bool active;
 		char unit;
 	} D;
-	struct MAPPRJ_E {	/* -E[<datum>] */
+	struct MAPPROJECT_E {	/* -E[<datum>] */
 		bool active;
 		struct GMT_DATUM datum;	/* Contains a, f, xyz[3] */
 	} E;
-	struct MAPPRJ_F {	/* -F[k|m|n|i|c|p] */
+	struct MAPPROJECT_F {	/* -F[k|m|n|i|c|p] */
 		bool active;
 		char unit;
 	} F;
-	struct MAPPRJ_G {	/* -G<lon0>/<lat0>[+a][+i][+u[+|-]d|e|f|k|m|M|n|s|c|C][+v] */
+	struct MAPPROJECT_G {	/* -G<lon0>/<lat0>[+a][+i][+u[+|-]d|e|f|k|m|M|n|s|c|C][+v] */
 		bool active;
 		unsigned int mode;	/* 1 = distance to fixed point, 2 = cumulative distances, 3 = incremental distances, 4 = 2nd point in cols 3/4 */
 		unsigned int sph;	/* 0 = Flat Earth, 1 = spherical [Default], 2 = ellipsoidal */
 		double lon, lat;	/* Fixed point of reference */
 		char unit;
 	} G;
-	struct MAPPRJ_I {	/* -I */
+	struct MAPPROJECT_I {	/* -I */
 		bool active;
 	} I;
-	struct MAPPRJ_L {	/* -L<line.xy>[/<d|e|f|k|m|M|n|s|c|C>] */
+	struct MAPPROJECT_L {	/* -L<line.xy>[/<d|e|f|k|m|M|n|s|c|C>] */
 		bool active;
 		unsigned int mode;	/* 0 = dist to nearest point, 1 = also get the point, 2 = instead get seg#, pt# */
 		unsigned int sph;	/* 0 = Flat Earth, 1 = spherical [Default], 2 = ellipsoidal */
 		char *file;	/* Name of file with lines */
 		char unit;
 	} L;
-	struct MAPPRJ_N {	/* -N */
+	struct MAPPROJECT_N {	/* -N */
 		bool active;
 		unsigned int mode;
 	} N;
-	struct MAPPRJ_Q {	/* -Q[e|d] */
+	struct MAPPROJECT_Q {	/* -Q[e|d] */
 		bool active;
 		unsigned int mode;	/* 1 = print =Qe, 2 print -Qd, 3 print both */
 	} Q;
-	struct MAPPRJ_S {	/* -S */
+	struct MAPPROJECT_S {	/* -S */
 		bool active;
 	} S;
-	struct MAPPRJ_T {	/* -T[h]<from>[/<to>] */
+	struct MAPPROJECT_T {	/* -T[h]<from>[/<to>] */
 		bool active;
 		bool heights;	/* True if we have heights */
 		struct GMT_DATUM from;	/* Contains a, f, xyz[3] */
 		struct GMT_DATUM to;	/* Contains a, f, xyz[3] */
 	} T;
-	struct MAPPRJ_W {	/* -W[w|h|j<code>|n<rx/ry>|g<lon/lat>|x<x/y>] */
+	struct MAPPROJECT_W {	/* -W[w|h|j<code>|n<rx/ry>|g<lon/lat>|x<x/y>] */
 		bool active;
 		unsigned int mode;	/* See GMT_mp_Wcodes above */
 		struct GMT_REFPOINT *refpoint;
 	} W;
-	struct MAPPRJ_Z {	/* -Z[<speed>][+c][+f][+i][+t<epoch>] */
+	struct MAPPROJECT_Z {	/* -Z[<speed>][+c][+f][+i][+t<epoch>] */
 		bool active;
 		bool formatted;		/* Format duration per ISO 8601 specification */
 		unsigned int mode;	/* 1 = incremental time, 2 absolute time since epoch, 3 = both */
@@ -162,7 +162,7 @@ struct MAPPROJECT_CTRL {	/* All control options for this program (except common 
 	} Z;
 };
 
-GMT_LOCAL void *New_Ctrl (struct GMT_CTRL *GMT) {	/* Allocate and initialize a new control structure */
+static void *New_Ctrl (struct GMT_CTRL *GMT) {	/* Allocate and initialize a new control structure */
 	struct MAPPROJECT_CTRL *C;
 
 	C = gmt_M_memory (GMT, NULL, 1, struct MAPPROJECT_CTRL);
@@ -179,13 +179,13 @@ GMT_LOCAL void *New_Ctrl (struct GMT_CTRL *GMT) {	/* Allocate and initialize a n
 	return (C);
 }
 
-GMT_LOCAL void Free_Ctrl (struct GMT_CTRL *GMT, struct MAPPROJECT_CTRL *C) {	/* Deallocate control structure */
+static void Free_Ctrl (struct GMT_CTRL *GMT, struct MAPPROJECT_CTRL *C) {	/* Deallocate control structure */
 	if (!C) return;
 	gmt_M_str_free (C->L.file);
 	gmt_M_free (GMT, C);
 }
 
-GMT_LOCAL int usage (struct GMTAPI_CTRL *API, int level) {
+static int usage (struct GMTAPI_CTRL *API, int level) {
 	const char *name = gmt_show_name_and_purpose (API, THIS_MODULE_LIB, THIS_MODULE_CLASSIC_NAME, THIS_MODULE_PURPOSE);
 	if (level == GMT_MODULE_PURPOSE) return (GMT_NOERROR);
 	GMT_Message (API, GMT_TIME_NONE, "usage: %s <table> %s %s\n", name, GMT_J_OPT, GMT_Rgeo_OPT);
@@ -407,7 +407,7 @@ GMT_LOCAL unsigned int mapproject_old_G_parser (struct GMT_CTRL *GMT, char *arg,
 	return (n_errors);
 }
 
-GMT_LOCAL int parse (struct GMT_CTRL *GMT, struct MAPPROJECT_CTRL *Ctrl, struct GMT_OPTION *options) {
+static int parse (struct GMT_CTRL *GMT, struct MAPPROJECT_CTRL *Ctrl, struct GMT_OPTION *options) {
 	/* This parses the options provided to mapproject and sets parameters in CTRL.
 	 * Any GMT common options will override values set previously by other commands.
 	 * It also replaces any file names specified as input or output with the data ID
@@ -1206,6 +1206,10 @@ EXTERN_MSC int GMT_mapproject (void *V_API, int mode, void *args) {
 		if (In == NULL) {	/* Crazy safety valve but it should never get here (to please Coverity) */
 			GMT_Report (API, GMT_MSG_ERROR, "Input pointer is NULL where it should not be, aborting\n");
 			Return (GMT_PTR_IS_NULL);
+		}
+		if (In->data == NULL) {
+			gmt_quit_bad_record (API, In);
+			Return (API->error);
 		}
 		if (first) {
 			unsigned int n_in_cols = (unsigned int)gmt_get_cols (GMT, GMT_IN);

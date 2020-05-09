@@ -119,12 +119,6 @@
    So far, only gmtset calls this function with core = true, but this is a too fragile solution */
 #define GMT_KEYWORD_UPDATE(val) if (core) GMT_keywords_updated[val] = true
 
-EXTERN_MSC void gmt_grdio_init (struct GMT_CTRL *GMT);	/* Defined in gmt_customio.c and only used here */
-EXTERN_MSC void gmt_fft_initialization (struct GMT_CTRL *GMT);
-EXTERN_MSC void gmt_fft_cleanup (struct GMT_CTRL *GMT);
-EXTERN_MSC void gmtapi_garbage_collection (struct GMTAPI_CTRL *API, int level);	/* From gmt_api.c */
-EXTERN_MSC void gmt_translin (struct GMT_CTRL *GMT, double forw, double *inv);				/* Forward linear	*/
-EXTERN_MSC void gmt_itranslin (struct GMT_CTRL *GMT, double *forw, double inv);				/* Inverse linear	*/
 
 /*--------------------------------------------------------------------*/
 /* Load private fixed array parameters from include files */
@@ -137,7 +131,8 @@ struct GMT5_params {
 
 /* These are the active GMT5+ keywords, containing no backwards-compatible variants.
  * Also, some grouped keywords such as FONT and FONT_ANNOT are also not listed since they are not in gmt.conf.
- * If new keywords are added they need to be added here as well as to gmt_keywords.txt. */
+ * If new keywords are added they need to be added here as well as to gmt_keywords.txt, plus
+ * specific entries in both gmtlib_setparameter and gmtlib_putparameter, and gmt.conf.rst */
 
 static struct GMT5_params GMT5_keywords[]= {
 	{ 1, "COLOR Parameters"},
@@ -189,6 +184,7 @@ static struct GMT5_params GMT5_keywords[]= {
 	{ 0, "GMT_HISTORY"},
 	{ 0, "GMT_INTERPOLANT"},
 	{ 0, "GMT_LANGUAGE"},
+	{ 0, "GMT_MAX_CORES"},
 	{ 0, "GMT_TRIANGULATE"},
 	{ 0, "GMT_VERBOSE"},
 	{ 1, "I/O Parameters"},
@@ -371,7 +367,7 @@ static struct GMT_FONTSPEC GMT_standard_fonts[GMT_N_STANDARD_FONTS] = {
  * common options without the module options, you cannot do the reverse.
   */
 
-GMT_LOCAL struct GMT_KEYWORD_DICTIONARY gmt_common_kw[] = {
+static struct GMT_KEYWORD_DICTIONARY gmt_common_kw[] = {
 	/* separator, short-option, long-option, short-directives, long-directives, short-modifiers, long-modifiers */
 	{   0, 'B', "frame",         "",        "",                                         "b,g,n,o,t",				"box,fill,noframe,oblique-pole,title" },
 	{   0, 'B', "axis",          "x,y,z",   "x,y,z",                                    "a,f,l,L,p,s,S,u",			"angle,fancy,label,Label,prefix,second-label,Second-label,unit" },
@@ -414,7 +410,6 @@ static struct GMT_HASH keys_hashnode[GMT_N_KEYS];
 
 #if defined (WIN32) /* Use Windows API */
 #include <Windows.h>
-EXTERN_MSC char *dlerror (void);
 
 /*! . */
 GMT_LOCAL bool gmtinit_file_lock (struct GMT_CTRL *GMT, int fd) {
@@ -2094,6 +2089,8 @@ GMT_LOCAL int gmtinit_parse_x_option (struct GMT_CTRL *GMT, char *arg) {
 		GMT->common.x.n_threads = 1;
 	else if (GMT->common.x.n_threads < 0)
 		GMT->common.x.n_threads = MAX(gmtlib_get_num_processors() - GMT->common.x.n_threads, 1);		/* Max-n but at least one */
+	if (GMT->current.setting.max_cores)	/* Limit to max core defaults setting */
+		GMT->common.x.n_threads = GMT->current.setting.max_cores;
 	return (GMT_NOERROR);
 }
 #endif
@@ -5963,6 +5960,8 @@ void gmt_conf (struct GMT_CTRL *GMT) {
 	GMT->current.setting.interpolant = GMT_SPLINE_AKIMA;
 	/* GMT_LANGUAGE */
 	strcpy (GMT->current.setting.language, "us");
+	/* GMT_MAX_CORES */
+	GMT->current.setting.max_cores = 0;
 	/* GMT_TRIANGULATE */
 #ifdef TRIANGLE_D
 	GMT->current.setting.triangulate = GMT_TRIANGLE_SHEWCHUK;
@@ -6321,8 +6320,8 @@ GMT_LOCAL struct GMT_CTRL *gmtinit_new_GMT_ctrl (struct GMTAPI_CTRL *API, const 
 
 	GMT->current.proj.projection = GMT_NO_PROJ;
 	/* We need some defaults here for the cases where we do not actually set these with gmt_map_setup */
-	GMT->current.proj.fwd_x = GMT->current.proj.fwd_y = GMT->current.proj.fwd_z = &gmt_translin;
-	GMT->current.proj.inv_x = GMT->current.proj.inv_y = GMT->current.proj.inv_z = &gmt_itranslin;
+	GMT->current.proj.fwd_x = GMT->current.proj.fwd_y = GMT->current.proj.fwd_z = &gmtlib_translin;
+	GMT->current.proj.inv_x = GMT->current.proj.inv_y = GMT->current.proj.inv_z = &gmtlib_itranslin;
 	/* z_level will be updated in GMT_init_three_D, but if it doesn't, it does not matter,
 	 * because by default, z_scale = 0.0 */
 	GMT->current.proj.z_level = DBL_MAX;
@@ -6332,7 +6331,7 @@ GMT_LOCAL struct GMT_CTRL *gmtinit_new_GMT_ctrl (struct GMTAPI_CTRL *API, const 
 	GMT->current.proj.z_project.plane = -1;	/* Initialize no perspective projection */
 	GMT->current.proj.z_project.level = 0.0;
 	for (i = 0; i < 4; i++) GMT->current.proj.edge[i] = true;
-	gmt_grdio_init (GMT);
+	gmtlib_grdio_init (GMT);
 	gmt_set_pad (GMT, pad); /* Sets default number of rows/cols for boundary padding in this session */
 	GMT->current.proj.f_horizon = 90.0;
 	GMT->current.proj.proj4 = gmt_M_memory (GMT, NULL, GMT_N_PROJ4, struct GMT_PROJ4);
@@ -9222,7 +9221,7 @@ unsigned int gmt_setdefaults (struct GMT_CTRL *GMT, struct GMT_OPTION *options) 
 	for (opt = options; opt; opt = opt->next) {
 		if (!(opt->option == '<' || opt->option == '#') || !opt->arg) continue;		/* Skip other and empty options */
 		if (!strcmp (opt->arg, "=")) continue;			/* User forgot and gave parameter = value (3 words) */
-		if (opt->arg[0] != '=' && strchr (opt->arg, '=')) {	/* User forgot and gave parameter=value (1 word) */
+		if (opt->arg[0] != '=' && strchr (opt->arg, '=') && (!param || !strstr (param, "FONT_"))) {	/* User forgot and gave parameter=value (1 word); OK except for FONTS */
 			p = 0;
 			while (opt->arg[p] && opt->arg[p] != '=') p++;
 			opt->arg[p] = '\0';	/* Temporarily remove the equal sign */
@@ -10586,6 +10585,14 @@ unsigned int gmtlib_setparameter (struct GMT_CTRL *GMT, const char *keyword, cha
 			strncpy (GMT->current.setting.language, lower_value, GMT_LEN64-1);
 			gmtinit_get_language (GMT);	/* Load in names and abbreviations in chosen language */
 			break;
+		case GMTCASE_GMT_MAX_CORES:
+			if ((ival = atoi (value)) < 0) {
+				GMT_Report (GMT->parent, GMT_MSG_ERROR, "GMT_MAX_CORES must be 0 or positive\n");
+				error = true;
+			}
+			else
+				GMT->current.setting.max_cores = ival;
+			break;
 		case GMTCASE_GMT_TRIANGULATE:
 			if (!strcmp (lower_value, "watson"))
 				GMT->current.setting.triangulate = GMT_TRIANGLE_WATSON;
@@ -11813,6 +11820,9 @@ char *gmtlib_putparameter (struct GMT_CTRL *GMT, const char *keyword) {
 				strcpy (value, "none");
 			else
 				strcpy (value, "undefined");
+			break;
+		case GMTCASE_GMT_MAX_CORES:
+			sprintf (value, "%d", GMT->current.setting.max_cores);
 			break;
 		case GMTCASE_TIME_LANGUAGE:
 		case GMTCASE_GMT_LANGUAGE:
@@ -13802,8 +13812,9 @@ struct GMT_CTRL *gmt_init_module (struct GMTAPI_CTRL *API, const char *lib_name,
 		bool ocean;
 		if (gmtlib_file_is_srtmrequest (API, opt->arg, &srtm_res, &ocean)) {
 			unsigned int level = GMT->hidden.func_level;	/* Since we will need to increment prematurely since gmtinit_begin_module_sub has not been reached yet */
+			unsigned int k;
 			char *list = NULL;
-			double sgn, res[4] = {0.0, 1.0/3600.0, 0.0, 3.0/3600.0};	/* Only access 1 or 3 here */
+			double res[4] = {15.0/3600.0, 1.0/3600.0, 0.0, 3.0/3600.0};	/* Only access 1 or 3 here */
 			struct GMT_OPTION *opt_J = GMT_Find_Option (API, 'J', *options);
 			opt_R = GMT_Find_Option (API, 'R', *options);
 			if (opt_R == NULL) {
@@ -13819,17 +13830,16 @@ struct GMT_CTRL *gmt_init_module (struct GMTAPI_CTRL *API, const char *lib_name,
 			API->GMT->hidden.func_level++;	/* Must do this here in case gmt_parse_R_option calls mapproject */
 			gmt_parse_R_option (GMT, opt_R->arg);
 			API->GMT->hidden.func_level = level;	/* Reset to what it should be */
-			/* Enforce multiple of 1s or 3s in wesn so region is in phase with tiles */
-			sgn = (GMT->common.R.wesn[XLO] < 0.0) ? -1.0 : +1.0;
-			GMT->common.R.wesn[XLO] = sgn * ceil (fabs (GMT->common.R.wesn[XLO]) / res[srtm_res]) * res[srtm_res];
-			sgn = (GMT->common.R.wesn[XHI] < 0.0) ? -1.0 : +1.0;
-			GMT->common.R.wesn[XHI] = sgn * ceil  (fabs (GMT->common.R.wesn[XHI]) / res[srtm_res]) * res[srtm_res];
-			sgn = (GMT->common.R.wesn[YLO] < 0.0) ? -1.0 : +1.0;
-			GMT->common.R.wesn[YLO] = sgn * ceil (fabs (GMT->common.R.wesn[YLO]) / res[srtm_res]) * res[srtm_res];
-			sgn = (GMT->common.R.wesn[YHI] < 0.0) ? -1.0 : +1.0;
-			GMT->common.R.wesn[YHI] = sgn * ceil  (fabs (GMT->common.R.wesn[YHI]) / res[srtm_res]) * res[srtm_res];
+			/* Enforce multiple of 1s or 3s in wesn so requested region is in phase with tiles and at least covers the given region.
+			 * When ocean is true we instead round to nearest 15s since earth_relief_15s will be used.
+			 * the GMT_CONV8_LIMIT is there to ensure we dont round an almost exact x/dx */
+			k = (ocean) ? 0 : srtm_res;	/* Select 15s, 1s, or 3s increments */
+			GMT->common.R.wesn[XLO] = floor ((GMT->common.R.wesn[XLO] / res[k]) + GMT_CONV8_LIMIT) * res[k];
+			GMT->common.R.wesn[XHI] = ceil  ((GMT->common.R.wesn[XHI] / res[k]) - GMT_CONV8_LIMIT) * res[k];
+			GMT->common.R.wesn[YLO] = floor ((GMT->common.R.wesn[YLO] / res[k]) + GMT_CONV8_LIMIT) * res[k];
+			GMT->common.R.wesn[YHI] = ceil  ((GMT->common.R.wesn[YHI] / res[k]) - GMT_CONV8_LIMIT) * res[k];
 			/* Get a file with a list of all needed srtm tiles */
-			list = gmtlib_get_srtmlist (API, GMT->common.R.wesn, srtm_res, ocean);
+			list = gmtlib_get_srtmlist (API, GMT->common.R.wesn, srtm_res, ocean, GMT->current.ps.active);
 			/* Replace the @[earth|srtm]_relief_0[1|3s file name with this local list */
 			gmt_M_str_free (opt->arg);
 			opt->arg = list;
@@ -13901,7 +13911,7 @@ void gmt_end_module (struct GMT_CTRL *GMT, struct GMT_CTRL *Ccopy) {
 		           GMT->current.proj.n_geodesic_calls, GMT->current.proj.n_geodesic_approx);
 	}
 
-	gmtapi_garbage_collection (GMT->parent, GMT->hidden.func_level);	/* Free up all registered memory for this module level */
+	gmtlib_garbage_collection (GMT->parent, GMT->hidden.func_level);	/* Free up all registered memory for this module level */
 
 	/* At the end of the module we restore all GMT settings as we found them (in Ccopy) */
 
@@ -13962,7 +13972,7 @@ void gmt_end_module (struct GMT_CTRL *GMT, struct GMT_CTRL *Ccopy) {
 	gmtinit_reset_colformats (GMT);		/* Wipe previous settings */
 	gmtinit_free_dirnames (GMT);		/* Wipe previous dir names */
 
-	gmt_fft_cleanup (GMT); /* Clean FFT resources */
+	gmtlib_fft_cleanup (GMT); /* Clean FFT resources */
 
 	/* Overwrite GMT with what we saved in gmt_init_module */
 	gmt_M_memcpy (GMT, Ccopy, 1, struct GMT_CTRL);	/* Overwrite struct with things from Ccopy */
@@ -16199,7 +16209,7 @@ struct GMT_CTRL *gmt_begin (struct GMTAPI_CTRL *API, const char *session, unsign
 
 	if (GMT->current.setting.io_gridfile_shorthand) gmtinit_setshorthand (GMT);	/* Load the short hand mechanism from gmt.io */
 
-	gmt_fft_initialization (GMT);	/* Determine which FFT algos are available and set pointers */
+	gmtlib_fft_initialization (GMT);	/* Determine which FFT algos are available and set pointers */
 
 	gmtinit_set_today (GMT);	/* Determine today's rata die value */
 

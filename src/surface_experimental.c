@@ -53,63 +53,63 @@
 #define THIS_MODULE_OPTIONS "-:RVabdefhirs" GMT_ADD_x_OPT GMT_OPT("FH")
 
 struct SURFACE_CTRL {
-	struct A {	/* -A<aspect_ratio> */
+	struct SURFACE_EXPERIMENTAL_A {	/* -A<aspect_ratio> */
 		bool active;
 		unsigned int mode;	/* 1 if given as fraction */
 		double value;
 	} A;
-	struct C {	/* -C<converge_limit> */
+	struct SURFACE_EXPERIMENTAL_C {	/* -C<converge_limit> */
 		bool active;
 		unsigned int mode;	/* 1 if given as fraction */
 		double value;
 	} C;
-	struct D {	/* -D<line.xyz>[+d] */
+	struct SURFACE_EXPERIMENTAL_D {	/* -D<line.xyz>[+d] */
 		bool active;
 		bool debug;
 		char *file;	/* Name of file with breaklines */
 	} D;
 #ifdef DEBUG_SURF
-	struct E {	/* -E[+o|p|m+1+a+s][<name>] */
+	struct SURFACE_EXPERIMENTAL_E {	/* -E[+o|p|m+1+a+s][<name>] */
 		bool active;
 		bool once;
 		bool save;
 	} E;
 #endif
-	struct G {	/* -G<file> */
+	struct SURFACE_EXPERIMENTAL_G {	/* -G<file> */
 		bool active;
 		char *file;
 	} G;
-	struct L {	/* -Ll|u<limit> */
+	struct SURFACE_EXPERIMENTAL_L {	/* -Ll|u<limit> */
 		bool active;
 		char *file[2];
 		double limit[2];
 		unsigned int mode[2];
 	} L;
-	struct M {	/* -M<radius> */
+	struct SURFACE_EXPERIMENTAL_M {	/* -M<radius> */
 		bool active;
 		char *arg;
 	} M;
-	struct N {	/* -N<max_iterations> */
+	struct SURFACE_EXPERIMENTAL_N {	/* -N<max_iterations> */
 		bool active;
 		unsigned int value;
 	} N;
-	struct Q {	/* -Q */
+	struct SURFACE_EXPERIMENTAL_Q {	/* -Q */
 		bool active;
 	} Q;
-	struct S {	/* -S<radius>[m|s] */
+	struct SURFACE_EXPERIMENTAL_S {	/* -S<radius>[m|s] */
 		bool active;
 		double radius;
 		char unit;
 	} S;
-	struct T {	/* -T<tension>[i][b] */
+	struct SURFACE_EXPERIMENTAL_T {	/* -T<tension>[i][b] */
 		bool active;
 		double b_tension, i_tension;
 	} T;
-	struct W {	/* -W[<logfile>] */
+	struct SURFACE_EXPERIMENTAL_W {	/* -W[<logfile>] */
 		bool active;
 		char *file;
 	} W;
-	struct Z {	/* -Z<over_relaxation_parameter> */
+	struct SURFACE_EXPERIMENTAL_Z {	/* -Z<over_relaxation_parameter> */
 		bool active;
 		double value;
 	} Z;
@@ -1895,7 +1895,7 @@ GMT_LOCAL void surface_interpolate_add_breakline (struct GMT_CTRL *GMT, struct S
 	gmt_M_free (GMT, zb);
 }
 
-GMT_LOCAL void *New_Ctrl (struct GMT_CTRL *GMT) {	/* Allocate and initialize a new control structure */
+static void *New_Ctrl (struct GMT_CTRL *GMT) {	/* Allocate and initialize a new control structure */
 	struct SURFACE_CTRL *C;
 
 	C = gmt_M_memory (GMT, NULL, 1, struct SURFACE_CTRL);
@@ -1909,7 +1909,7 @@ GMT_LOCAL void *New_Ctrl (struct GMT_CTRL *GMT) {	/* Allocate and initialize a n
 	return (C);
 }
 
-GMT_LOCAL void Free_Ctrl (struct GMT_CTRL *GMT, struct SURFACE_CTRL *C) {	/* Deallocate control structure */
+static void Free_Ctrl (struct GMT_CTRL *GMT, struct SURFACE_CTRL *C) {	/* Deallocate control structure */
 	if (!C) return;
 	gmt_M_str_free (C->G.file);
 	if (C->D.file) gmt_M_str_free (C->D.file);
@@ -1920,7 +1920,7 @@ GMT_LOCAL void Free_Ctrl (struct GMT_CTRL *GMT, struct SURFACE_CTRL *C) {	/* Dea
 	gmt_M_free (GMT, C);
 }
 
-GMT_LOCAL int usage (struct GMTAPI_CTRL *API, int level) {
+static int usage (struct GMTAPI_CTRL *API, int level) {
 	unsigned int ppm;
 	const char *name = gmt_show_name_and_purpose (API, THIS_MODULE_LIB, THIS_MODULE_CLASSIC_NAME, THIS_MODULE_PURPOSE);
 	if (level == GMT_MODULE_PURPOSE) return (GMT_NOERROR);
@@ -1988,7 +1988,7 @@ GMT_LOCAL int usage (struct GMTAPI_CTRL *API, int level) {
 	return (GMT_MODULE_USAGE);
 }
 
-GMT_LOCAL int parse (struct GMT_CTRL *GMT, struct SURFACE_CTRL *Ctrl, struct GMT_OPTION *options) {
+static int parse (struct GMT_CTRL *GMT, struct SURFACE_CTRL *Ctrl, struct GMT_OPTION *options) {
 	/* Parse the options provided and set parameters in CTRL structure.
 	 * Any GMT common options will override values set previously by other commands.
 	 * It also replaces any file names specified as input or output with the data ID

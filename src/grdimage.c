@@ -43,40 +43,40 @@ static char *gdal_ext[N_IMG_EXTENSIONS] = {"tiff", "tif", "gif", "png", "jpg", "
 /* Control structure for grdimage */
 
 struct GRDIMAGE_CTRL {
-	struct GRDIMG_In {
+	struct GRDIMAGE_In {
 		bool active;
 		bool do_rgb;
 		char *file[3];
 	} In;
-	struct GRDIMG_Out {
+	struct GRDIMAGE_Out {
 		bool active;
 		char *file;
 	} Out;
-	struct GRDIMG_C {	/* -C<cpt> or -C<color1>,<color2>[,<color3>,...][+i<dz>] */
+	struct GRDIMAGE_C {	/* -C<cpt> or -C<color1>,<color2>[,<color3>,...][+i<dz>] */
 		bool active;
 		double dz;
 		char *file;
 	} C;
-	struct GRDIMG_D {	/* -D to read image instead of grid */
+	struct GRDIMAGE_D {	/* -D to read image instead of grid */
 		bool active;
 		bool mode;	/* Use info of -R option to reference image */
 	} D;
-	struct GRDIMG_A {	/* -A to write a raster file or return image to API */
+	struct GRDIMAGE_A {	/* -A to write a raster file or return image to API */
 		bool active;
 		bool return_image;
 		unsigned int way;
 		char *file;
 	} A;
-	struct GRDIMG_E {	/* -Ei|<dpi> */
+	struct GRDIMAGE_E {	/* -Ei|<dpi> */
 		bool active;
 		bool device_dpi;
 		unsigned int dpi;
 	} E;
-	struct GRDIMG_G {	/* -G<rgb>[+b|f] */
+	struct GRDIMAGE_G {	/* -G<rgb>[+b|f] */
 		bool active;
 		double rgb[2][4];
 	} G;
-	struct GRDIMG_I {	/* -I[<intensfile>|<value>|<modifiers>] */
+	struct GRDIMAGE_I {	/* -I[<intensfile>|<value>|<modifiers>] */
 		bool active;
 		bool constant;
 		bool derive;
@@ -86,16 +86,16 @@ struct GRDIMAGE_CTRL {
 		char *method;	/* Default scaling method */
 		char *ambient;	/* Default ambient offset */
 	} I;
-	struct GRDIMG_M {	/* -M */
+	struct GRDIMAGE_M {	/* -M */
 		bool active;
 	} M;
-	struct GRDIMG_N {	/* -N */
+	struct GRDIMAGE_N {	/* -N */
 		bool active;
 	} N;
-	struct GRDIMG_Q {	/* -Q */
+	struct GRDIMAGE_Q {	/* -Q */
 		bool active;
 	} Q;
-	struct GRDIMG_W {	/* -W */
+	struct GRDIMAGE_W {	/* -W */
 		bool active;
 	} W;
 };
@@ -103,7 +103,7 @@ struct GRDIMAGE_CTRL {
 #define GRDIMAGE_BGD	0
 #define GRDIMAGE_FGD	1
 
-GMT_LOCAL void *New_Ctrl (struct GMT_CTRL *GMT) {	/* Allocate and initialize a new control structure */
+static void *New_Ctrl (struct GMT_CTRL *GMT) {	/* Allocate and initialize a new control structure */
 	struct GRDIMAGE_CTRL *C;
 
 	C = gmt_M_memory (GMT, NULL, 1, struct GRDIMAGE_CTRL);
@@ -118,7 +118,7 @@ GMT_LOCAL void *New_Ctrl (struct GMT_CTRL *GMT) {	/* Allocate and initialize a n
 	return (C);
 }
 
-GMT_LOCAL void Free_Ctrl (struct GMT_CTRL *GMT, struct GRDIMAGE_CTRL *C) {	/* Deallocate control structure */
+static void Free_Ctrl (struct GMT_CTRL *GMT, struct GRDIMAGE_CTRL *C) {	/* Deallocate control structure */
 	int k;
 	if (!C) return;
 	for (k = 0; k < 3; k++) gmt_M_str_free (C->In.file[k]);
@@ -132,7 +132,7 @@ GMT_LOCAL void Free_Ctrl (struct GMT_CTRL *GMT, struct GRDIMAGE_CTRL *C) {	/* De
 	gmt_M_free (GMT, C);
 }
 
-GMT_LOCAL int usage (struct GMTAPI_CTRL *API, int level) {
+static int usage (struct GMTAPI_CTRL *API, int level) {
 	const char *name = gmt_show_name_and_purpose (API, THIS_MODULE_LIB, THIS_MODULE_CLASSIC_NAME, THIS_MODULE_PURPOSE);
 	if (level == GMT_MODULE_PURPOSE) return (GMT_NOERROR);
 	if (API->external) {	/* External interface */
@@ -214,7 +214,7 @@ GMT_LOCAL int usage (struct GMTAPI_CTRL *API, int level) {
 EXTERN_MSC int gmtinit_parse_n_option (struct GMT_CTRL *GMT, char *item);
 EXTERN_MSC int gmtlib_get_grdtype (struct GMT_CTRL *GMT, unsigned int direction, struct GMT_GRID_HEADER *h);
 
-GMT_LOCAL int parse (struct GMT_CTRL *GMT, struct GRDIMAGE_CTRL *Ctrl, struct GMT_OPTION *options) {
+static int parse (struct GMT_CTRL *GMT, struct GRDIMAGE_CTRL *Ctrl, struct GMT_OPTION *options) {
 	/* This parses the options provided to grdimage and sets parameters in Ctrl.
 	 * Note Ctrl has already been initialized and non-zero default values set.
 	 * Any GMT common options will override values set previously by other commands.
@@ -1202,15 +1202,16 @@ EXTERN_MSC int GMT_grdimage (void *V_API, int mode, void *args) {
 	/* Evaluate colors at least once (try = 0), or twice if -Q is active and we need to select another unique NaN color not used in the image */
 	for (try = 0, done = false; !done && try < 2; try++) {
 		if (rgb_from_z && !Ctrl->Q.active) {	/* Got a single grid and need to look up color via the CPT */
+		int srow, scol;	/* Due to OPENMP on Windows requiring signed int loop variables */
 			GMT_Report (API, GMT_MSG_INFORMATION, "Basic z(x,y) with optional illumination and no colormasking.\n");
-//#ifdef _OPENMP
-//#pragma omp parallel for private(row,byte,kk,col,node,index,rgb,k) shared(n_rows,header_work,actual_row,n_columns,GMT,P,Grid_proj,Ctrl,intensity_mode,Intens_proj,set_gray,bitimage_8,bitimage_24)
-//#endif
-			for (row = 0; row < n_rows; row++) {	/* March along scanlines */
-				byte = colormask_offset + row * n_columns * step;
-				kk = gmt_M_ijpgi (header_work, actual_row[row], 0);	/* Start pixel of this row */
-				for (col = 0; col < n_columns; col++) {	/* Compute rgb for each pixel along this scanline */
-					node = kk + actual_col[col];
+#ifdef _OPENMP
+#pragma omp parallel for private(srow,byte,kk,scol,node,index,rgb,k) shared(n_rows,header_work,actual_row,n_columns,step,GMT,P,Grid_proj,Ctrl,intensity_mode,Intens_proj,set_gray,bitimage_8,bitimage_24)
+#endif
+			for (srow = 0; srow < (int)n_rows; srow++) {	/* March along scanlines */
+				byte = colormask_offset + srow * n_columns * step;
+				kk = gmt_M_ijpgi (header_work, actual_row[srow], 0);	/* Start pixel of this row */
+				for (scol = 0; scol < (int)n_columns; scol++) {	/* Compute rgb for each pixel along this scanline */
+					node = kk + actual_col[scol];
 					index = gmt_get_rgb_from_z (GMT, P, Grid_proj[0]->data[node], rgb);
 					if (index != (GMT_NAN - 3)) has_content = true;
 					if (index != (GMT_NAN - 3) && Ctrl->I.active) {	/* Need to deal with illumination */

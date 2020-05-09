@@ -54,29 +54,29 @@ PostScript code is written to stdout.
 /* Control structure for psvelo */
 
 struct PSVELO_CTRL {
-	struct A {	/* -A */
+	struct PSVELO_A {	/* -A */
 		bool active;
 		struct GMT_SYMBOL S;
 	} A;
-	struct D {	/* -D */
+	struct PSVELO_D {	/* -D */
 		bool active;
 		double scale;
 	} D;
- 	struct E {	/* -E<fill> */
+ 	struct PSVELO_E {	/* -E<fill> */
 		bool active;
 		struct GMT_FILL fill;
 	} E;
- 	struct G {	/* -G<fill> */
+ 	struct PSVELO_G {	/* -G<fill> */
 		bool active;
 		struct GMT_FILL fill;
 	} G;
-	struct L {	/* -L */
+	struct PSVELO_L {	/* -L */
 		bool active;
 	} L;
-	struct N {	/* -N */
+	struct PSVELO_N {	/* -N */
 		bool active;
 	} N;
-	struct S {	/* -r<fill> */
+	struct PSVELO_S {	/* -r<fill> */
 		bool active;
 		int symbol;
 		unsigned int readmode;
@@ -86,7 +86,7 @@ struct PSVELO_CTRL {
 		struct GMT_FILL fill;
 		struct GMT_FONT font;
 	} S;
-	struct W {	/* -W<pen> */
+	struct PSVELO_W {	/* -W<pen> */
 		bool active;
 		struct GMT_PEN pen;
 	} W;
@@ -587,7 +587,7 @@ GMT_LOCAL void psvelo_paint_wedge (struct PSL_CTRL *PSL, double x0, double y0, d
 
 /* end of utilvelo.c */
 
-GMT_LOCAL void *New_Ctrl (struct GMT_CTRL *GMT) {	/* Allocate and initialize a new control structure */
+static void *New_Ctrl (struct GMT_CTRL *GMT) {	/* Allocate and initialize a new control structure */
 	struct PSVELO_CTRL *C;
 
 	C = gmt_M_memory (GMT, NULL, 1, struct PSVELO_CTRL);
@@ -612,12 +612,12 @@ GMT_LOCAL void *New_Ctrl (struct GMT_CTRL *GMT) {	/* Allocate and initialize a n
 	return (C);
 }
 
-GMT_LOCAL void Free_Ctrl (struct GMT_CTRL *GMT, struct PSVELO_CTRL *C) {	/* Deallocate control structure */
+static void Free_Ctrl (struct GMT_CTRL *GMT, struct PSVELO_CTRL *C) {	/* Deallocate control structure */
 	if (!C) return;
 	gmt_M_free (GMT, C);
 }
 
-GMT_LOCAL int usage (struct GMTAPI_CTRL *API, int level) {
+static int usage (struct GMTAPI_CTRL *API, int level) {
 	/* This displays the psvelo synopsis and optionally full usage information */
 
 	const char *name = gmt_show_name_and_purpose (API, THIS_MODULE_LIB, THIS_MODULE_CLASSIC_NAME, THIS_MODULE_PURPOSE);
@@ -657,7 +657,7 @@ GMT_LOCAL int usage (struct GMTAPI_CTRL *API, int level) {
 	return (GMT_MODULE_USAGE);
 }
 
-GMT_LOCAL int parse (struct GMT_CTRL *GMT, struct PSVELO_CTRL *Ctrl, struct GMT_OPTION *options) {
+static int parse (struct GMT_CTRL *GMT, struct PSVELO_CTRL *Ctrl, struct GMT_OPTION *options) {
 	/* This parses the options provided to psvelo and sets parameters in Ctrl.
 	 * Note Ctrl has already been initialized and non-zero default values set.
 	 * Any GMT common options will override values set previously by other commands.
@@ -892,6 +892,10 @@ EXTERN_MSC int GMT_psvelo (void *V_API, int mode, void *args) {
 			if (gmt_M_rec_is_eof (GMT)) 		/* Reached end of file */
 				break;
 			assert (In->text != NULL);						/* Should never get here */
+		}
+		if (In->data == NULL) {
+			gmt_quit_bad_record (API, In);
+			Return (API->error);
 		}
 
 		in = In->data;

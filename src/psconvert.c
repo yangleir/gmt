@@ -48,22 +48,6 @@
 #	endif
 #	endif
 
-#ifdef _WIN32
-#	define dup2 _dup2
-	/* Various shared-library functions declared in gmt_sharedlibs.c */
-	EXTERN_MSC void *dlopen (const char *module_name, int mode);
-	EXTERN_MSC int dlclose (void *handle);
-	EXTERN_MSC void *dlsym (void *handle, const char *name);
-	EXTERN_MSC char *dlerror (void);
-#	ifndef RTLD_LAZY
-#		define RTLD_LAZY 1
-#	endif
-#else	/* Standard Unix things */
-#	include <dlfcn.h>
-#endif
-
-EXTERN_MSC void gmt_handle5_plussign (struct GMT_CTRL *GMT, char *in, char *mods, unsigned way);
-
 #ifdef WIN32	/* Special for Windows */
 #	include <windows.h>
 #	include <process.h>
@@ -116,11 +100,11 @@ enum psconv_alias {
 #define add_to_list(list,item) { if (list[0]) strcat (list, " "); strcat (list, item); }
 #define add_to_qlist(list,item) { if (list[0]) strcat (list, " "); strcat (list, squote);  strcat (list, item); strcat (list, squote); }
 
-struct PS2RASTER_CTRL {
-	struct PS2R_In {	/* Input file info */
+struct PSCONVERT_CTRL {
+	struct PSCONVERT_In {	/* Input file info */
 		unsigned int n_files;
 	} In;
-	struct PS2R_A {             /* -A[+f<fade>][+g<fill>][+m<margins>][+n][+p<pen>][+r][+s|S[m]<width>[/<height>]][+u] */
+	struct PSCONVERT_A {             /* -A[+f<fade>][+g<fill>][+m<margins>][+n][+p<pen>][+r][+s|S[m]<width>[/<height>]][+u] */
 		bool active;
 		bool max;          /* Only scale if dim exceeds the given size */
 		bool round;        /* Round HiRes BB instead of ceil (+r) */
@@ -139,59 +123,59 @@ struct PS2RASTER_CTRL {
 		struct GMT_PEN pen;
 		struct GMT_FILL fill;
 	} A;
-	struct PS2R_C {	/* -C<option> */
+	struct PSCONVERT_C {	/* -C<option> */
 		bool active;
 		char arg[GMT_LEN256];
 	} C;
-	struct PS2R_D {	/* -D<dir> */
+	struct PSCONVERT_D {	/* -D<dir> */
 		bool active;
 		char *dir;
 	} D;
-	struct PS2R_E {	/* -E<resolution> */
+	struct PSCONVERT_E {	/* -E<resolution> */
 		bool active;
 		double dpi;
 	} E;
-	struct PS2R_F {	/* -F<out_name> */
+	struct PSCONVERT_F {	/* -F<out_name> */
 		bool active;
 		char *file;
 	} F;
-	struct PS2R_G {	/* -G<GSpath> */
+	struct PSCONVERT_G {	/* -G<GSpath> */
 		bool active;
 		char *file;
 	} G;
-	struct PS2R_H {	/* -H<factor> */
+	struct PSCONVERT_H {	/* -H<factor> */
 		bool active;
 		int factor;
 	} H;
-	struct PS2R_I {	/* -I */
+	struct PSCONVERT_I {	/* -I */
 		bool active;
 	} I;
-	struct PS2R_L {	/* -L<listfile> */
+	struct PSCONVERT_L {	/* -L<listfile> */
 		bool active;
 		char *file;
 	} L;
-	struct PS2R_M {	/* -Mb|f<PSfile> */
+	struct PSCONVERT_M {	/* -Mb|f<PSfile> */
 		bool active;
 		char *file;
 	} M[2];
-	struct PS2R_P {	/* -P */
+	struct PSCONVERT_P {	/* -P */
 		bool active;
 	} P;
-	struct PS2R_Q {	/* -Q[g|t]<bits> -Qp */
+	struct PSCONVERT_Q {	/* -Q[g|t]<bits> -Qp */
 		bool active;
 		bool on[3];	/* [0] for graphics, [1] for text antialiasing, [2] for pdfmark GeoPDF */
 		unsigned int bits[2];
 	} Q;
-	struct PS2R_S {	/* -S */
+	struct PSCONVERT_S {	/* -S */
 		bool active;
 	} S;
-	struct PS2R_T {	/* -T */
+	struct PSCONVERT_T {	/* -T */
 		bool active;
 		int eps;	/* 1 if we want to make EPS, -1 with setpagedevice (possibly in addition to another format) */
 		int ps;		/* 1 if we want to save the final PS under "modern" setting */
 		int device;	/* May be negative */
 	} T;
-	struct PS2R_W {	/* -W -- for world file production */
+	struct PSCONVERT_W {	/* -W -- for world file production */
 		bool active;
 		bool folder;
 		bool warp;
@@ -205,13 +189,13 @@ struct PS2RASTER_CTRL {
 		char *foldername;	/* Name of KML folder */
 		double altitude;
 	} W;
-	struct PS2R_Z { /* -Z */
+	struct PSCONVERT_Z { /* -Z */
 		bool active;
 	} Z;
 };
 
 #ifdef WIN32	/* Special for Windows */
-	GMT_LOCAL int psconvert_ghostbuster(struct GMTAPI_CTRL *API, struct PS2RASTER_CTRL *C);
+	GMT_LOCAL int psconvert_ghostbuster(struct GMTAPI_CTRL *API, struct PSCONVERT_CTRL *C);
 #else
 	/* Abstraction to get popen to do bidirectional read/write */
 GMT_LOCAL struct popen2 * psconvert_popen2 (const char *cmdline) {
@@ -266,7 +250,7 @@ GMT_LOCAL void psconvert_pclose2 (struct popen2 **Faddr, int dir) {
 }
 #endif
 
-GMT_LOCAL int psconvert_parse_A_settings (struct GMT_CTRL *GMT, char *arg, struct PS2RASTER_CTRL *Ctrl) {
+GMT_LOCAL int psconvert_parse_A_settings (struct GMT_CTRL *GMT, char *arg, struct PSCONVERT_CTRL *Ctrl) {
 	/* Syntax:
 	 * New : -A[+f<fade>][+g<fill>][+m<margins>][+n][+p<pen>][+r][+s|S[m]<width>[/<height>]][+u]
 	 * Old : -A[-][u][<margins>][+g<fill>][+p<pen>][+r][+s|S[m]<width>[/<height>]]
@@ -401,7 +385,7 @@ GMT_LOCAL int psconvert_parse_A_settings (struct GMT_CTRL *GMT, char *arg, struc
 				break;
 		}
 	}
-
+	if (Ctrl->A.fade) Ctrl->A.paint = false;	/* With fading, the paint color is the terminal color */
 	if (Ctrl->A.rescale && Ctrl->A.resize) {
 		GMT_Report (Ctrl, GMT_MSG_ERROR, "Option -A+s|S: Cannot set both -A+s and -A+S\n");
 		error++;
@@ -412,7 +396,7 @@ GMT_LOCAL int psconvert_parse_A_settings (struct GMT_CTRL *GMT, char *arg, struc
 	return (error);
 }
 
-GMT_LOCAL int psconvert_parse_GE_settings (struct GMT_CTRL *GMT, char *arg, struct PS2RASTER_CTRL *C) {
+GMT_LOCAL int psconvert_parse_GE_settings (struct GMT_CTRL *GMT, char *arg, struct PSCONVERT_CTRL *C) {
 	/* Syntax: -W[+g][+k][+t<doctitle>][+n<layername>][+a<altmode>][+l<lodmin>/<lodmax>] */
 
 	unsigned int pos = 0, error = 0;
@@ -486,10 +470,10 @@ GMT_LOCAL int psconvert_parse_GE_settings (struct GMT_CTRL *GMT, char *arg, stru
 	return (error);
 }
 
-GMT_LOCAL void *New_Ctrl (struct GMT_CTRL *GMT) {	/* Allocate and initialize a new control structure */
-	struct PS2RASTER_CTRL *C;
+static void *New_Ctrl (struct GMT_CTRL *GMT) {	/* Allocate and initialize a new control structure */
+	struct PSCONVERT_CTRL *C;
 
-	C = gmt_M_memory (GMT, NULL, 1, struct PS2RASTER_CTRL);
+	C = gmt_M_memory (GMT, NULL, 1, struct PSCONVERT_CTRL);
 
 	/* Initialize values whose defaults are not 0/false/NULL */
 #ifdef WIN32
@@ -507,7 +491,7 @@ GMT_LOCAL void *New_Ctrl (struct GMT_CTRL *GMT) {	/* Allocate and initialize a n
 	return (C);
 }
 
-GMT_LOCAL void Free_Ctrl (struct GMT_CTRL *GMT, struct PS2RASTER_CTRL *C) {	/* Deallocate control structure */
+static void Free_Ctrl (struct GMT_CTRL *GMT, struct PSCONVERT_CTRL *C) {	/* Deallocate control structure */
 	if (!C) return;
 	gmt_M_str_free (C->D.dir);
 	gmt_M_str_free (C->F.file);
@@ -531,7 +515,7 @@ GMT_LOCAL double psconvert_smart_ceil (double x) {
 	return (fx);
 }
 
-GMT_LOCAL int usage (struct GMTAPI_CTRL *API, int level) {
+static int usage (struct GMTAPI_CTRL *API, int level) {
 	const char *name = gmt_show_name_and_purpose (API, THIS_MODULE_LIB, THIS_MODULE_CLASSIC_NAME, THIS_MODULE_PURPOSE);
 	if (level == GMT_MODULE_PURPOSE) return (GMT_NOERROR);
 	GMT_Message (API, GMT_TIME_NONE, "usage: %s <psfile1> <psfile2> <...> -A[+f<fade>][+g<fill>][+m<margins>][+n][+p[<pen>]][+r][+s[m]|S<width>[/<height>]][+u]\n", name);
@@ -553,6 +537,7 @@ GMT_LOCAL int usage (struct GMTAPI_CTRL *API, int level) {
 	GMT_Message (API, GMT_TIME_NONE, "\n\tOPTIONS:\n");
 	GMT_Message (API, GMT_TIME_NONE, "\t-A Adjust the BoundingBox to the minimum required by the image contents.\n");
 	GMT_Message (API, GMT_TIME_NONE, "\t   Append +f<fade> (0-100) to fade entire plot to black (100%% fade)[no fading].\n");
+	GMT_Message (API, GMT_TIME_NONE, "\t     Use +g<color> to change the fade color [black].\n");
 	GMT_Message (API, GMT_TIME_NONE, "\t   Append +g<paint> to paint the BoundingBox [no paint].\n");
 	GMT_Message (API, GMT_TIME_NONE, "\t   Append +m<margin(s)> to enlarge the BoundingBox, with <margin(s)> being\n");
 	GMT_Message (API, GMT_TIME_NONE, "\t     <off> for uniform margin for all 4 sides,\n");
@@ -676,7 +661,7 @@ GMT_LOCAL int usage (struct GMTAPI_CTRL *API, int level) {
 	return (GMT_MODULE_USAGE);
 }
 
-GMT_LOCAL int parse (struct GMT_CTRL *GMT, struct PS2RASTER_CTRL *Ctrl, struct GMT_OPTION *options) {
+static int parse (struct GMT_CTRL *GMT, struct PSCONVERT_CTRL *Ctrl, struct GMT_OPTION *options) {
 	/* This parses the options provided to psconvert and sets parameters in CTRL.
 	 * Any GMT common options will override values set previously by other commands.
 	 * It also replaces any file names specified as input or output with the data ID
@@ -963,7 +948,7 @@ GMT_LOCAL void psconvert_file_rewind (FILE *fp, uint64_t *notused) {	/* Rewinds 
 #define bailout(code) {gmt_M_free_options (mode); return (code);}
 #define Return(code) {Free_Ctrl (GMT, Ctrl); gmt_end_module (GMT, GMT_cpy); bailout (code);}
 
-GMT_LOCAL inline char *psconvert_alpha_bits (struct PS2RASTER_CTRL *Ctrl) {
+GMT_LOCAL inline char *psconvert_alpha_bits (struct PSCONVERT_CTRL *Ctrl) {
 	/* return alpha bits which are valid for the selected driver */
 	static char alpha[48];
 	char *c = alpha;
@@ -989,7 +974,7 @@ GMT_LOCAL inline char *psconvert_alpha_bits (struct PS2RASTER_CTRL *Ctrl) {
 	return alpha;
 }
 
-GMT_LOCAL void psconvert_possibly_fill_or_outline_BB (struct GMT_CTRL *GMT, struct PS2R_A *A, FILE *fp) {
+GMT_LOCAL void psconvert_possibly_fill_or_outline_BB (struct GMT_CTRL *GMT, struct PSCONVERT_A *A, FILE *fp) {
 	/* Check if user wanted to paint or outline the BoundingBox - otherwise do nothing */
 	char *ptr = NULL;
 	GMT->PSL->internal.dpp = PSL_DOTS_PER_INCH / 72.0;	/* Dots pr. point resolution of output device, set here since no PSL initialization */
@@ -1009,7 +994,7 @@ GMT_LOCAL void psconvert_possibly_fill_or_outline_BB (struct GMT_CTRL *GMT, stru
 }
 
 /* ---------------------------------------------------------------------------------------------- */
-GMT_LOCAL int psconvert_pipe_HR_BB(struct GMTAPI_CTRL *API, struct PS2RASTER_CTRL *Ctrl, char *gs_BB, double margin, double *w, double *h) {
+GMT_LOCAL int psconvert_pipe_HR_BB(struct GMTAPI_CTRL *API, struct PSCONVERT_CTRL *Ctrl, char *gs_BB, double margin, double *w, double *h) {
 	/* Do what we do in the main code for the -A (if used here) option but on an in-memory PS 'file' */
 	char      cmd[GMT_LEN512] = {""}, buf[GMT_LEN128] = {""}, t[32] = {""}, *pch, c;
 	int       fh, r, c_begin = 0;
@@ -1165,7 +1150,7 @@ GMT_LOCAL int psconvert_pipe_HR_BB(struct GMTAPI_CTRL *API, struct PS2RASTER_CTR
 }
 /* ---------------------------------------------------------------------------------------------- */
 
-GMT_LOCAL int psconvert_pipe_ghost (struct GMTAPI_CTRL *API, struct PS2RASTER_CTRL *Ctrl, char *gs_params, double w, double h, char *out_file) {
+GMT_LOCAL int psconvert_pipe_ghost (struct GMTAPI_CTRL *API, struct PSCONVERT_CTRL *Ctrl, char *gs_params, double w, double h, char *out_file) {
 	/* Run the command that converts the PostScript into a raster format, but using an in-memory PS as source.
 	   For that we use the popen function to run the GS command. The biggest problem, however, is that popen only
 	   access one pipe and we need two. One for the PS input and the other for the raster output. There are popen
@@ -1339,7 +1324,7 @@ GMT_LOCAL int psconvert_pipe_ghost (struct GMTAPI_CTRL *API, struct PS2RASTER_CT
 }
 
 /* ---------------------------------------------------------------------------------------------- */
-GMT_LOCAL int psconvert_in_mem_PS(struct GMTAPI_CTRL *API, struct PS2RASTER_CTRL *Ctrl, char **ps_names, char *gs_BB, char *gs_params, char *device[], char *device_options[], char *ext[]) {
+GMT_LOCAL int psconvert_in_mem_PS(struct GMTAPI_CTRL *API, struct PSCONVERT_CTRL *Ctrl, char **ps_names, char *gs_BB, char *gs_params, char *device[], char *device_options[], char *ext[]) {
 	char out_file[PATH_MAX] = {""};
 	int    error = 0;
 	double margin = 0, w = 0, h = 0;	/* Width and height in pixels of the final raster cropped of the outer white spaces */
@@ -1463,7 +1448,7 @@ EXTERN_MSC int GMT_psconvert (void *V_API, int mode, void *args) {
 	uint64_t pos = 0;
 	bool got_BB, got_HRBB, file_has_HRBB, got_end, landscape, landscape_orig, set_background = false;
 	bool excessK, setup, found_proj = false, isGMT_PS = false, return_image = false, delete = false, file_processing = true;
-	bool transparency = false, look_for_transparency, BeginPageSetup_here = false, add_grestore = false;
+	bool transparency = false, look_for_transparency, BeginPageSetup_here = false, has_transparency, add_grestore = false;
 
 	double xt, yt, xt_bak, yt_bak, w, h, x0 = 0.0, x1 = 612.0, y0 = 0.0, y1 = 828.0;
 	double west = 0.0, east = 0.0, south = 0.0, north = 0.0;
@@ -1518,7 +1503,7 @@ EXTERN_MSC int GMT_psconvert (void *V_API, int mode, void *args) {
 	FILE *fp = NULL, *fpo = NULL, *fpb = NULL, *fp2 = NULL, *fpw = NULL;
 
 	struct GMT_OPTION *opt = NULL;
-	struct PS2RASTER_CTRL *Ctrl = NULL;
+	struct PSCONVERT_CTRL *Ctrl = NULL;
 	struct GMT_CTRL *GMT = NULL, *GMT_cpy = NULL;
 	struct GMT_OPTION *options = NULL;
 	struct GMTAPI_CTRL *API = gmt_get_api_ptr (V_API);	/* Cast from void to GMTAPI_CTRL pointer */
@@ -2042,12 +2027,13 @@ EXTERN_MSC int GMT_psconvert (void *V_API, int mode, void *args) {
 
 		/* To produce non-PDF output from PS with transparency we must determine if transparency is requested in the PS */
 		look_for_transparency = Ctrl->T.device != GS_DEV_PDF && Ctrl->T.device != -GS_DEV_PDF;
-		transparency = add_grestore = false;
+		has_transparency = transparency = add_grestore = false;
 		set_background = (Ctrl->A.paint || Ctrl->A.outline);
 
 		while (psconvert_file_line_reader (GMT, &line, &line_size, fp, PS->data, &pos) != EOF) {
 			if (line[0] != '%') {	/* Copy any non-comment line, except one containing setpagedevice in the Setup block */
-				if (look_for_transparency && strstr (line, " PSL_transp")) {
+				if (!has_transparency) has_transparency = (strstr (line, " PSL_transp") != NULL);
+				if (look_for_transparency && has_transparency) {
 					transparency = true;		/* Yes, found transparency */
 					look_for_transparency = false;	/* No need to check anymore */
 				}
@@ -2247,8 +2233,9 @@ EXTERN_MSC int GMT_psconvert (void *V_API, int mode, void *args) {
 			}
 			else if (Ctrl->A.fade && !strncmp (line, "%%PageTrailer", 13) && Ctrl->A.fade_level > 0.0) {
 				/* Place a transparent black rectangle over everything, at level of transparency */
-				GMT_Report (API, GMT_MSG_INFORMATION, "Append fading to black at %d%%.\n", irint (100.0*Ctrl->A.fade_level));
-				fprintf (fpo, "gsave clippath 0 0 0 %g /Normal PSL_transp F N U\n", Ctrl->A.fade_level);
+				char *ptr = PSL_makecolor (GMT->PSL, Ctrl->A.fill.rgb);
+				GMT_Report (API, GMT_MSG_INFORMATION, "Append fading to %s at %d%%.\n", gmt_putrgb (GMT, Ctrl->A.fill.rgb), irint (100.0*Ctrl->A.fade_level));
+				fprintf (fpo, "V clippath %s %g /Normal PSL_transp F N U\n", ptr, Ctrl->A.fade_level);
 				transparency = true;
 			}
 #ifdef HAVE_GDAL
@@ -2327,8 +2314,11 @@ EXTERN_MSC int GMT_psconvert (void *V_API, int mode, void *args) {
 		fclose (fpo);	fpo = NULL;
 		fclose (fp);	fp  = NULL;
 
+
+		if (has_transparency && gsVersion.major == 9 && (gsVersion.minor == 51 || gsVersion.minor == 52))
+				GMT_Report (API, GMT_MSG_WARNING, "Input file has transparency but your gs version 9.%d has a bug preventing it - please downgrade to 9.50\n", gsVersion.minor);
 		if (transparency && Ctrl->T.device != GS_DEV_PDF)	/* Must reset to PDF settings since we have transparency */
-			gs_params = (gsVersion.major >= 9 && gsVersion.minor >= 21) ? gs_params_pdfnew : gs_params_pdfold;
+				gs_params = (gsVersion.major >= 9 && gsVersion.minor >= 21) ? gs_params_pdfnew : gs_params_pdfold;
 
 		/* Build the converting Ghostscript command and execute it */
 
@@ -2712,8 +2702,19 @@ EXTERN_MSC int GMT_psconvert (void *V_API, int mode, void *args) {
 	Return (GMT_NOERROR);
 }
 
+EXTERN_MSC int GMT_ps2raster (void *V_API, int mode, void *args) {
+	/* This was the GMT5.1 name */
+	struct GMTAPI_CTRL *API = gmt_get_api_ptr (V_API);	/* Cast from void to GMTAPI_CTRL pointer */
+	if (gmt_M_compat_check (API->GMT, 5)) {
+		GMT_Report (API, GMT_MSG_COMPAT, "Module ps2raster is deprecated; use psconvert.\n");
+		return (GMT_Call_Module (API, "psconvert", mode, args));
+	}
+	GMT_Report (API, GMT_MSG_ERROR, "Shared GMT module not found: ps2raster\n");
+	return (GMT_NOT_A_VALID_MODULE);
+}
+
 #ifdef WIN32
-GMT_LOCAL int psconvert_ghostbuster(struct GMTAPI_CTRL *API, struct PS2RASTER_CTRL *C) {
+GMT_LOCAL int psconvert_ghostbuster(struct GMTAPI_CTRL *API, struct PSCONVERT_CTRL *C) {
 	/* Search the Windows registry for the directory containing the gswinXXc.exe
 	   We do this by finding the GS_DLL that is a value of the HKLM\SOFTWARE\GPL Ghostscript\X.XX\ key
 	   Things are further complicated because Win64 has TWO registries: one 32 and the other 64 bits.

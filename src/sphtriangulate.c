@@ -41,36 +41,36 @@
 #define THIS_MODULE_OPTIONS "-:RVbdehijqs"
 
 struct SPHTRIANGULATE_CTRL {
-	struct SPHTRI_Out {	/* -> */
+	struct SPHTRIANGULATE_Out {	/* -> */
 		bool active;
 		char *file;
 	} Out;
-	struct SPHTRI_A {	/* -A */
+	struct SPHTRIANGULATE_A {	/* -A */
 		bool active;
 	} A;
-	struct SPHTRI_C {	/* -C */
+	struct SPHTRIANGULATE_C {	/* -C */
 		bool active;
 	} C;
-	struct SPHTRI_D {	/* -D */
+	struct SPHTRIANGULATE_D {	/* -D */
 		bool active;
 	} D;
-	struct SPHTRI_G {	/* -G<output_grdfile> */
+	struct SPHTRIANGULATE_G {	/* -G<output_grdfile> */
 		bool active;
 		char *file;
 	} G;
-	struct SPHTRI_L {	/* -L<unit>] */
+	struct SPHTRIANGULATE_L {	/* -L<unit>] */
 		bool active;
 		char unit;
 	} L;
-	struct SPHTRI_N {	/* -N */
+	struct SPHTRIANGULATE_N {	/* -N */
 		bool active;
 		char *file;
 	} N;
-	struct SPHTRI_Q {	/* -Q */
+	struct SPHTRIANGULATE_Q {	/* -Q */
 		bool active;
 		unsigned int mode;	/* 0 is Delaunay, 1 is Voronoi */
 	} Q;
-	struct SPHTRI_T {	/* -T */
+	struct SPHTRIANGULATE_T {	/* -T */
 		bool active;
 	} T;
 };
@@ -405,7 +405,7 @@ GMT_LOCAL char *sphtriangulate_unit_name (char unit, int arc) {
 	return (name);
 }
 
-GMT_LOCAL void *New_Ctrl (struct GMT_CTRL *GMT) {	/* Allocate and initialize a new control structure */
+static void *New_Ctrl (struct GMT_CTRL *GMT) {	/* Allocate and initialize a new control structure */
 	struct SPHTRIANGULATE_CTRL *C;
 
 	C = gmt_M_memory (GMT, NULL, 1, struct SPHTRIANGULATE_CTRL);
@@ -414,7 +414,7 @@ GMT_LOCAL void *New_Ctrl (struct GMT_CTRL *GMT) {	/* Allocate and initialize a n
 	return (C);
 }
 
-GMT_LOCAL void Free_Ctrl (struct GMT_CTRL *GMT, struct SPHTRIANGULATE_CTRL *C) {	/* Deallocate control structure */
+static void Free_Ctrl (struct GMT_CTRL *GMT, struct SPHTRIANGULATE_CTRL *C) {	/* Deallocate control structure */
 	if (!C) return;
 	gmt_M_str_free (C->Out.file);
 	gmt_M_str_free (C->G.file);
@@ -422,7 +422,7 @@ GMT_LOCAL void Free_Ctrl (struct GMT_CTRL *GMT, struct SPHTRIANGULATE_CTRL *C) {
 	gmt_M_free (GMT, C);
 }
 
-GMT_LOCAL int usage (struct GMTAPI_CTRL *API, int level) {
+static int usage (struct GMTAPI_CTRL *API, int level) {
 	const char *name = gmt_show_name_and_purpose (API, THIS_MODULE_LIB, THIS_MODULE_CLASSIC_NAME, THIS_MODULE_PURPOSE);
 	if (level == GMT_MODULE_PURPOSE) return (GMT_NOERROR);
 	GMT_Message (API, GMT_TIME_NONE, "\t==> The hard work is done by algorithms 772 (STRIPACK) & 773 (SSRFPACK) by R. J. Renka [1997] <==\n\n");
@@ -454,7 +454,7 @@ GMT_LOCAL int usage (struct GMTAPI_CTRL *API, int level) {
 	return (GMT_MODULE_USAGE);
 }
 
-GMT_LOCAL int parse (struct GMT_CTRL *GMT, struct SPHTRIANGULATE_CTRL *Ctrl, struct GMT_OPTION *options) {
+static int parse (struct GMT_CTRL *GMT, struct SPHTRIANGULATE_CTRL *Ctrl, struct GMT_OPTION *options) {
 	/* This parses the options provided to sphtriangulate and sets parameters in CTRL.
 	 * Any GMT common options will override values set previously by other commands.
 	 * It also replaces any file names specified as input or output with the data ID
@@ -607,6 +607,11 @@ EXTERN_MSC int GMT_sphtriangulate (void *V_API, int mode, void *args) {
 			else if (gmt_M_rec_is_segment_header (GMT))			/* Parse segment headers */
 				first = true;
 			continue;	/* Go back and read the next record */
+		}
+
+		if (In->data == NULL) {
+			gmt_quit_bad_record (API, In);
+			Return (API->error);
 		}
 
 		/* Data record to process */

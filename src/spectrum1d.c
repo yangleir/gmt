@@ -48,36 +48,36 @@
 #define SPECTRUM1D_N_OUTPUT_CHOICES 8
 
 struct SPECTRUM1D_CTRL {
-	struct SPECT1D_Out {	/* -><file> */
+	struct SPECTRUM1D_Out {	/* -><file> */
 		bool active;
 		char *file;
 	} Out;
-	struct SPECT1D_C {	/* -C[<xycnpago>] */
+	struct SPECTRUM1D_C {	/* -C[<xycnpago>] */
 		bool active;
 		char col[SPECTRUM1D_N_OUTPUT_CHOICES];	/* Character codes for desired output in the right order */
 	} C;
-	struct SPECT1D_D {	/* -D<inc> */
+	struct SPECTRUM1D_D {	/* -D<inc> */
 		bool active;
 		double inc;
 	} D;
-	struct SPECT1D_L {	/* -L[m|h] */
+	struct SPECTRUM1D_L {	/* -L[m|h] */
 		bool active;
 		bool debug;
 		unsigned int mode;
 	} L;
-	struct SPECT1D_N {	/* -N[+]<namestem> */
+	struct SPECTRUM1D_N {	/* -N[+]<namestem> */
 		bool active;
 		unsigned int mode;
 		char *name;
 	} N;
-	struct SPECT1D_S {	/* -S<segment_size> */
+	struct SPECTRUM1D_S {	/* -S<segment_size> */
 		bool active;
 		unsigned int size;
 	} S;
-	struct SPECT1D_T {	/* -T */
+	struct SPECTRUM1D_T {	/* -T */
 		bool active;
 	} T;
-	struct SPECT1D_W {	/* -W */
+	struct SPECTRUM1D_W {	/* -W */
 		bool active;
 	} W;
 };
@@ -87,7 +87,7 @@ struct SPECTRUM1D_INFO {	/* Control structure for spectrum1d */
 	int n_spec, window, window_2;
 	gmt_grdfloat *datac;
 	double dt, x_variance, y_variance, d_n_windows, y_pow;
-	struct SPEC {
+	struct SPECTRUM1D_SPEC {
 		double xpow;	/* PSD in X(t)  */
 		double ypow;	/* PSD in Y(t)  */
 		double gain;	/* Amplitude increase X->Y in Optimal Response Function  */
@@ -101,7 +101,7 @@ GMT_LOCAL void spectrum1d_alloc_arrays (struct GMT_CTRL *GMT, struct SPECTRUM1D_
 	C->n_spec = C->window/2;	/* This means we skip zero frequency; data are detrended  */
 	C->window_2 = 2 * C->window;		/* This is for complex array stuff  */
 
-	C->spec = gmt_M_memory (GMT, NULL, C->n_spec, struct SPEC);
+	C->spec = gmt_M_memory (GMT, NULL, C->n_spec, struct SPECTRUM1D_SPEC);
 	C->datac = gmt_M_memory (GMT, NULL, C->window_2, gmt_grdfloat);
 }
 
@@ -514,7 +514,7 @@ GMT_LOCAL void spectrum1d_free_space (struct GMT_CTRL *GMT, struct SPECTRUM1D_IN
 	gmt_M_free (GMT, C->datac);
 }
 
-GMT_LOCAL void *New_Ctrl (struct GMT_CTRL *GMT) {	/* Allocate and initialize a new control structure */
+static void *New_Ctrl (struct GMT_CTRL *GMT) {	/* Allocate and initialize a new control structure */
 	struct SPECTRUM1D_CTRL *C;
 
 	C = gmt_M_memory (GMT, NULL, 1, struct SPECTRUM1D_CTRL);
@@ -533,13 +533,13 @@ GMT_LOCAL void *New_Ctrl (struct GMT_CTRL *GMT) {	/* Allocate and initialize a n
 	return (C);
 }
 
-GMT_LOCAL void Free_Ctrl (struct GMT_CTRL *GMT, struct SPECTRUM1D_CTRL *C) {	/* Deallocate control structure */
+static void Free_Ctrl (struct GMT_CTRL *GMT, struct SPECTRUM1D_CTRL *C) {	/* Deallocate control structure */
 	if (!C) return;
 	gmt_M_str_free (C->N.name);
 	gmt_M_free (GMT, C);
 }
 
-GMT_LOCAL int usage (struct GMTAPI_CTRL *API, int level) {
+static int usage (struct GMTAPI_CTRL *API, int level) {
 	const char *name = gmt_show_name_and_purpose (API, THIS_MODULE_LIB, THIS_MODULE_CLASSIC_NAME, THIS_MODULE_PURPOSE);
 	if (level == GMT_MODULE_PURPOSE) return (GMT_NOERROR);
 	GMT_Message (API, GMT_TIME_NONE, "usage: %s [<table>] -S<segment_size> [-C[<xycnpago>]] [-D<dt>] [-L[m|h]] [-N[<name_stem>]] [-T]\n", name);
@@ -571,7 +571,7 @@ GMT_LOCAL int usage (struct GMTAPI_CTRL *API, int level) {
 	return (GMT_MODULE_USAGE);
 }
 
-GMT_LOCAL int parse (struct GMT_CTRL *GMT, struct SPECTRUM1D_CTRL *Ctrl, struct GMT_OPTION *options) {
+static int parse (struct GMT_CTRL *GMT, struct SPECTRUM1D_CTRL *Ctrl, struct GMT_OPTION *options) {
 	/* This parses the options provided to spectrum1d and sets parameters in CTRL.
 	 * Any GMT common options will override values set previously by other commands.
 	 * It also replaces any file names specified as input or output with the data ID

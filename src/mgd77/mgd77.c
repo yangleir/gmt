@@ -2947,8 +2947,8 @@ int MGD77_Write_Header_Record (struct GMT_CTRL *GMT, char *file, struct MGD77_CO
 	return (error);
 }
 
-GMT_LOCAL int mgd77_read_header_record_m77_nohdr (struct GMT_CTRL *GMT, char *file, struct MGD77_CONTROL *F, struct MGD77_HEADER *H)
-{	/* Applies to MGD77 files */
+GMT_LOCAL int mgd77_read_header_record_m77_nohdr (struct GMT_CTRL *GMT, char *file, struct MGD77_CONTROL *F, struct MGD77_HEADER *H) {
+	/* Applies to MGD77 files */
 	char *MGD77_header[MGD77_N_HEADER_RECORDS], line[BUFSIZ], *not_used = NULL;
 	int i, sequence, err, n_eols, c, n;
 	struct stat buf;
@@ -3012,8 +3012,8 @@ GMT_LOCAL int mgd77_read_header_record_m77_nohdr (struct GMT_CTRL *GMT, char *fi
 	return (MGD77_NO_ERROR);	/* Success, it seems */
 }
 
-GMT_LOCAL int mgd77_read_header_record_m77t_nohdr (struct GMT_CTRL *GMT, char *file, struct MGD77_CONTROL *F, struct MGD77_HEADER *H)
-{	/* Applies to MGD77T files */
+GMT_LOCAL int mgd77_read_header_record_m77t_nohdr (struct GMT_CTRL *GMT, char *file, struct MGD77_CONTROL *F, struct MGD77_HEADER *H) {
+	/* Applies to MGD77T files */
 	char *MGD77_header, line[BUFSIZ], *not_used = NULL;
 	int i, err;
 	gmt_M_unused(file);
@@ -3046,8 +3046,8 @@ GMT_LOCAL int mgd77_read_header_record_m77t_nohdr (struct GMT_CTRL *GMT, char *f
 	return (MGD77_NO_ERROR);	/* Success, it seems */
 }
 
-GMT_LOCAL int mgd77_read_header_record_nohdr (struct GMT_CTRL *GMT, char *file, struct MGD77_CONTROL *F, struct MGD77_HEADER *H)
-{	/* Reads the header structure form a MGD77[+] file */
+GMT_LOCAL int mgd77_read_header_record_nohdr (struct GMT_CTRL *GMT, char *file, struct MGD77_CONTROL *F, struct MGD77_HEADER *H) {
+	/* Reads the header structure form a MGD77[+] file */
 	int error;
 
 	switch (F->format) {
@@ -3073,8 +3073,7 @@ GMT_LOCAL int mgd77_read_header_record_nohdr (struct GMT_CTRL *GMT, char *file, 
 	return (error);
 }
 
-GMT_LOCAL int mgd77_read_file_cdf_nohdr (struct GMT_CTRL *GMT, char *file, struct MGD77_CONTROL *F, struct MGD77_DATASET *S)
-{
+GMT_LOCAL int mgd77_read_file_cdf_nohdr (struct GMT_CTRL *GMT, char *file, struct MGD77_CONTROL *F, struct MGD77_DATASET *S) {
 	int err;
 
 	MGD77_Select_All_Columns (GMT, F, &S->H);
@@ -3090,8 +3089,8 @@ GMT_LOCAL int mgd77_read_file_cdf_nohdr (struct GMT_CTRL *GMT, char *file, struc
 	return (MGD77_NO_ERROR);
 }
 
-GMT_LOCAL int mgd77_read_file_asc_nohdr (struct GMT_CTRL *GMT, char *file, struct MGD77_CONTROL *F, struct MGD77_DATASET *S)	  /* Will read all MGD77 records in current file */
-{
+GMT_LOCAL int mgd77_read_file_asc_nohdr (struct GMT_CTRL *GMT, char *file, struct MGD77_CONTROL *F, struct MGD77_DATASET *S) {
+	/* Will read all MGD77 records in current file */
 	int err;
 
 	err = MGD77_Open_File (GMT, file, F, MGD77_READ_MODE);
@@ -3110,8 +3109,7 @@ GMT_LOCAL int mgd77_read_file_asc_nohdr (struct GMT_CTRL *GMT, char *file, struc
 	return (MGD77_NO_ERROR);
 }
 
-int MGD77_Read_File_nohdr (struct GMT_CTRL *GMT, char *file, struct MGD77_CONTROL *F, struct MGD77_DATASET *S)
-{
+int MGD77_Read_File_nohdr (struct GMT_CTRL *GMT, char *file, struct MGD77_CONTROL *F, struct MGD77_DATASET *S) {
 	int err = 0;
 
 	switch (F->format) {
@@ -5762,7 +5760,7 @@ unsigned int MGD77_Scan_Corrtable (struct GMT_CTRL *GMT, char *tablefile, char *
 					sscanf (p, "%[^-]-%[^)])", name, origin);
 				else			/* Just (value), origin == 0.0 */
 					sscanf (p, "%[^)])", name);
-				if ((id = MGD77_Match_List (GMT, name, n_list, list)) == MGD77_NOT_SET) {;	/* Not a recognized column */
+				if ((id = MGD77_Match_List (GMT, name, n_list, list)) == MGD77_NOT_SET) {	/* Not a recognized column */
 					list[n_list] = strdup (name);
 					n_list++;
 					if (n_list == n_alloc) {
@@ -5920,7 +5918,7 @@ int MGD77_Parse_Corrtable (struct GMT_CTRL *GMT, char *tablefile, char **cruises
 					sscanf (p, "%[^)])", name);
 					c->origin = 0.0;
 				}
-				if ((c->id = MGD77_Match_List (GMT, name, n_fields, field_names)) == MGD77_NOT_SET) {;	/* Not a recognized column */
+				if ((c->id = MGD77_Match_List (GMT, name, n_fields, field_names)) == MGD77_NOT_SET) {	/* Not a recognized column */
 					for (i = 0; i < n_aux; i++) if (!strcmp (name, aux_names[i])) c->id = i;	/* check auxiliaries */
 					if (c->id == MGD77_NOT_SET) { /* Not an auxiliary column either */
 						GMT_Report (GMT->parent, GMT_MSG_ERROR, "Column %s not found - requested by the correction table %s!\n", name, tablefile);

@@ -134,50 +134,50 @@ struct HOTSPOT_ORIGINATOR {
 
 struct ORIGINATOR_CTRL {	/* All control options for this program (except common args) */
 	/* active is true if the option has been activated */
-	struct D {	/* -D<factor */
+	struct ORIGINATER_D {	/* -D<factor */
 		bool active;
 		double value;
 	} D;
-	struct E {	/* -Erotfile[+i] */
+	struct ORIGINATER_E {	/* -Erotfile[+i] */
 		bool active;
 		bool mode;
 		char *file;
 	} E;
-	struct F {	/* -Fhotspotfile[+d] */
+	struct ORIGINATER_F {	/* -Fhotspotfile[+d] */
 		bool active;
 		bool mode;
 		char *file;
 	} F;
-	struct L {	/* -L */
+	struct ORIGINATER_L {	/* -L */
 		bool active;
 		unsigned int mode;
 		bool degree;	/* Report degrees */
 	} L;
-	struct N {	/* -N */
+	struct ORIGINATER_N {	/* -N */
 		bool active;
 		double t_upper;
 	} N;
-	struct Q {	/* -Q<tfix> */
+	struct ORIGINATER_Q {	/* -Q<tfix> */
 		bool active;
 		double t_fix, r_fix;
 	} Q;
-	struct S {	/* -S */
+	struct ORIGINATER_S {	/* -S */
 		bool active;
 		unsigned int n;
 	} S;
-	struct T {	/* -T */
+	struct ORIGINATER_T {	/* -T */
 		bool active;
 	} T;
-	struct W {	/* -W<max_dist> */
+	struct ORIGINATER_W {	/* -W<max_dist> */
 		bool active;
 		double dist;
 	} W;
-	struct Z {	/* -Z */
+	struct ORIGINATER_Z {	/* -Z */
 		bool active;
 	} Z;
 };
 
-GMT_LOCAL void *New_Ctrl (struct GMT_CTRL *GMT) {	/* Allocate and initialize a new control structure */
+static void *New_Ctrl (struct GMT_CTRL *GMT) {	/* Allocate and initialize a new control structure */
 	struct ORIGINATOR_CTRL *C;
 
 	C = gmt_M_memory (GMT, NULL, 1, struct ORIGINATOR_CTRL);
@@ -191,7 +191,7 @@ GMT_LOCAL void *New_Ctrl (struct GMT_CTRL *GMT) {	/* Allocate and initialize a n
 	return (C);
 }
 
-GMT_LOCAL void Free_Ctrl (struct GMT_CTRL *GMT, struct ORIGINATOR_CTRL *C) {	/* Deallocate control structure */
+static void Free_Ctrl (struct GMT_CTRL *GMT, struct ORIGINATOR_CTRL *C) {	/* Deallocate control structure */
 	if (!C) return;
 	gmt_M_str_free (C->E.file);
 	gmt_M_str_free (C->F.file);
@@ -206,7 +206,7 @@ GMT_LOCAL int originater_comp_hs (const void *p1, const void *p2) {
 	return (0);
 }
 
-GMT_LOCAL int usage (struct GMTAPI_CTRL *API, int level) {
+static int usage (struct GMTAPI_CTRL *API, int level) {
 	const char *name = gmt_show_name_and_purpose (API, THIS_MODULE_LIB, THIS_MODULE_CLASSIC_NAME, THIS_MODULE_PURPOSE);
 	if (level == GMT_MODULE_PURPOSE) return (GMT_NOERROR);
 	GMT_Message (API, GMT_TIME_NONE, "usage: %s [<table>] -E<rottable>[+i] -F<hotspottable>[+d] [-D<d_km>] [-H] [-L[<flag>]]\n", name);
@@ -241,7 +241,7 @@ GMT_LOCAL int usage (struct GMTAPI_CTRL *API, int level) {
 	return (GMT_MODULE_USAGE);
 }
 
-GMT_LOCAL int parse (struct GMT_CTRL *GMT, struct ORIGINATOR_CTRL *Ctrl, struct GMT_OPTION *options) {
+static int parse (struct GMT_CTRL *GMT, struct ORIGINATOR_CTRL *Ctrl, struct GMT_OPTION *options) {
 	/* This parses the options provided to originater and sets parameters in CTRL.
 	 * Any GMT common options will override values set previously by other commands.
 	 * It also replaces any file names specified as input or output with the data ID
@@ -502,6 +502,11 @@ EXTERN_MSC int GMT_originater (void *V_API, int mode, void *args) {
 				break;
 		}
 
+		if (In->data == NULL) {
+			gmt_quit_bad_record (API, In);
+			Return (API->error);
+		}
+
 		/* Data record to process */
 		in = In->data;	/* Only need to process numerical part here */
 		Out->text = In->text;
@@ -695,3 +700,16 @@ EXTERN_MSC int GMT_originater (void *V_API, int mode, void *args) {
 
 	Return (GMT_NOERROR);
 }
+
+
+EXTERN_MSC int GMT_originator (void *V_API, int mode, void *args) {
+	/* This was the GMT5 name */
+	struct GMTAPI_CTRL *API = gmt_get_api_ptr (V_API);	/* Cast from void to GMTAPI_CTRL pointer */
+	if (gmt_M_compat_check (API->GMT, 4)) {
+		GMT_Report (API, GMT_MSG_COMPAT, "Module originator is deprecated; use originater.\n");
+		return (GMT_Call_Module (API, "originater", mode, args));
+	}
+	GMT_Report (API, GMT_MSG_ERROR, "Shared GMT module not found: originator\n");
+	return (GMT_NOT_A_VALID_MODULE);
+}
+

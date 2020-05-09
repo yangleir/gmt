@@ -102,22 +102,22 @@
 
 struct GRDMATH_CTRL {	/* All control options for this program (except common args) */
 	/* active is true if the option has been activated */
-	struct Out {	/* = <filename> */
+	struct GRDMATH_Out {	/* = <filename> */
 		bool active;
 	} Out;
-	struct A {	/* -A<min_area>[/<min_level>/<max_level>][+ag|i|s][+r|l][+p<percent>] */
+	struct GRDMATH_A {	/* -A<min_area>[/<min_level>/<max_level>][+ag|i|s][+r|l][+p<percent>] */
 		bool active;
 		struct GMT_SHORE_SELECT info;
 	} A;
-	struct D {	/* -D<resolution>[+f] */
+	struct GRDMATH_D {	/* -D<resolution>[+f] */
 		bool active;
 		bool force;	/* if true, select next highest level if current set is not available */
 		char set;	/* One of f, h, i, l, c, or auto */
 	} D;
-	struct M {	/* -M */
+	struct GRDMATH_M {	/* -M */
 		bool active;
 	} M;
-	struct N {	/* -N */
+	struct GRDMATH_N {	/* -N */
 		bool active;
 	} N;
 };
@@ -149,7 +149,7 @@ struct GRDMATH_STORE {
 	struct GRDMATH_STACK stored;
 };
 
-GMT_LOCAL void *New_Ctrl (struct GMT_CTRL *GMT) {	/* Allocate and initialize a new control structure */
+static void *New_Ctrl (struct GMT_CTRL *GMT) {	/* Allocate and initialize a new control structure */
 	struct GRDMATH_CTRL *C = gmt_M_memory (GMT, NULL, 1, struct GRDMATH_CTRL);
 
 	/* Initialize values whose defaults are not 0/false/NULL */
@@ -159,12 +159,12 @@ GMT_LOCAL void *New_Ctrl (struct GMT_CTRL *GMT) {	/* Allocate and initialize a n
 	return (C);
 }
 
-GMT_LOCAL void Free_Ctrl (struct GMT_CTRL *GMT, struct GRDMATH_CTRL *C) {	/* Deallocate control structure */
+static void Free_Ctrl (struct GMT_CTRL *GMT, struct GRDMATH_CTRL *C) {	/* Deallocate control structure */
 	if (!C) return;
 	gmt_M_free (GMT, C);
 }
 
-GMT_LOCAL int usage (struct GMTAPI_CTRL *API, int level) {
+static int usage (struct GMTAPI_CTRL *API, int level) {
 	const char *name = gmt_show_name_and_purpose (API, THIS_MODULE_LIB, THIS_MODULE_CLASSIC_NAME, THIS_MODULE_PURPOSE);
 	if (level == GMT_MODULE_PURPOSE) return (GMT_NOERROR);
 	GMT_Message (API, GMT_TIME_NONE, "usage: %s [%s]\n\t[%s]\n\t[-D<resolution>][+f] [%s]\n\t[-M] [-N] [-S] [%s] [%s] [%s] [%s]\n\t[%s] [%s]"
@@ -244,7 +244,7 @@ GMT_LOCAL int usage (struct GMTAPI_CTRL *API, int level) {
 		"	DENAN      2  1    Replace NaNs in A with values from B\n"
 		"	DILOG      1  1    dilog (A)\n"
 		"	DIV        2  1    A / B\n"
-		"	DOT        2  1    Dot product (2-D Cartesian or 3-D geographic) of vector (A,B) with grid nodes locations"
+		"	DOT        2  1    Dot product (2-D Cartesian or 3-D geographic) of vector (A,B) with grid nodes locations\n"
 		"	DUP        1  2    Places duplicate of A on the stack\n"
 		"	ECDF       2  1    Exponential cumulative distribution function for x = A and lambda = B\n"
 		"	ECRIT      2  1    Exponential distribution critical value for alpha = A and lambda = B\n"
@@ -454,7 +454,7 @@ GMT_LOCAL int usage (struct GMTAPI_CTRL *API, int level) {
 	return (GMT_MODULE_USAGE);
 }
 
-GMT_LOCAL int parse (struct GMT_CTRL *GMT, struct GRDMATH_CTRL *Ctrl, struct GMT_OPTION *options) {
+static int parse (struct GMT_CTRL *GMT, struct GRDMATH_CTRL *Ctrl, struct GMT_OPTION *options) {
 	/* This parses the options provided to grdmath and sets parameters in CTRL.
 	 * Any GMT common options will override values set previously by other commands.
 	 * It also replaces any file names specified as input or output with the data ID
@@ -688,8 +688,7 @@ GMT_LOCAL double grdmath_stack_collapse_xor (struct GMT_CTRL *GMT, double *array
  *              Definitions of all operator functions
  * -----------------------------------------------------------------*/
 
-GMT_LOCAL int grdmath_collapse_stack (struct GMT_CTRL *GMT, struct GRDMATH_INFO *info, struct GRDMATH_STACK *stack[], unsigned int last, char *OP)
-{
+GMT_LOCAL int grdmath_collapse_stack (struct GMT_CTRL *GMT, struct GRDMATH_INFO *info, struct GRDMATH_STACK *stack[], unsigned int last, char *OP) {
 	/* Collapse stack will apply the given operator to all items on the stack, per node.
 	 * E.g., you may have 7 grids on the stack and you want to return the mean value per node
 	 * for all 7 grids, to be replaced by a single grid with those means.  You would do
@@ -5827,8 +5826,8 @@ static void grdmath_init (void (*ops[]) (struct GMT_CTRL *, struct GRDMATH_INFO 
 #define Return1(code) {GMT_Destroy_Options (API, &list); Free_Ctrl (GMT, Ctrl); gmt_end_module (GMT, GMT_cpy); bailout (code);}
 #define Return(code) {GMT_Destroy_Options (API, &list); Free_Ctrl (GMT, Ctrl); grdmath_free (GMT, stack, recall, &info); gmt_end_module (GMT, GMT_cpy); bailout (code);}
 
-GMT_LOCAL void grdmath_backwards_fixing (struct GMT_CTRL *GMT, char **arg)
-{	/* Handle backwards compatible operator names */
+GMT_LOCAL void grdmath_backwards_fixing (struct GMT_CTRL *GMT, char **arg) {
+	/* Handle backwards compatible operator names */
 	char *t = NULL, old[GMT_LEN16] = {""};
 	if (!gmt_M_compat_check (GMT, 6)) return;	/* No checking so we may fail later */
 	if (!strcmp (*arg, "CHIDIST"))      {strncpy (old, *arg, GMT_LEN16-1); gmt_M_str_free (*arg); *arg = t = strdup ("CHI2CDF");  }

@@ -50,14 +50,14 @@
 /* Control structure for filter1d */
 
 struct FILTER1D_CTRL {
-	struct D {	/* -D<inc> */
+	struct FILTER1D_D {	/* -D<inc> */
 		bool active;
 		double inc;
 	} D;
-	struct E {	/* -E */
+	struct FILTER1D_E {	/* -E */
 		bool active;
 	} E;
-	struct F {	/* -F<type><width>[<mode>] */
+	struct FILTER1D_F {	/* -F<type><width>[<mode>] */
 		bool active;
 		bool highpass;
 		char filter;	/* Character codes for the filter */
@@ -65,11 +65,11 @@ struct FILTER1D_CTRL {
 		int mode;	/* -1/0/+1 */
 		char *file;	/* Character codes for the filter */
 	} F;
-	struct L {	/* -L<lackwidth> */
+	struct FILTER1D_L {	/* -L<lackwidth> */
 		bool active;
 		double value;
 	} L;
-	struct N {	/* -N<t_col> or -Nc|<unit>[+a] */
+	struct FILTER1D_N {	/* -N<t_col> or -Nc|<unit>[+a] */
 		bool active;
 		bool add_col;
 		char unit;
@@ -77,15 +77,15 @@ struct FILTER1D_CTRL {
 		unsigned int spatial;
 		int col;
 	} N;
-	struct Q {	/* -Q<factor> */
+	struct FILTER1D_Q {	/* -Q<factor> */
 		bool active;
 		double value;
 	} Q;
-	struct S {	/* -S<symmetry> */
+	struct FILTER1D_S {	/* -S<symmetry> */
 		bool active;
 		double value;
 	} S;
-	struct T {	/* -T<tmin/tmax/tinc>[+a|n] */
+	struct FILTER1D_T {	/* -T<tmin/tmax/tinc>[+a|n] */
 		bool active;
 		struct GMT_ARRAY T;
 	} T;
@@ -159,7 +159,7 @@ struct FILTER1D_INFO {	/* Control structure for all aspects of the filter setup 
 	struct GMT_ARRAY T;
 };
 
-GMT_LOCAL void *New_Ctrl (struct GMT_CTRL *GMT) {	/* Allocate and initialize a new control structure */
+static void *New_Ctrl (struct GMT_CTRL *GMT) {	/* Allocate and initialize a new control structure */
 	struct FILTER1D_CTRL *C;
 
 	C = gmt_M_memory (GMT, NULL, 1, struct FILTER1D_CTRL);
@@ -169,14 +169,14 @@ GMT_LOCAL void *New_Ctrl (struct GMT_CTRL *GMT) {	/* Allocate and initialize a n
 	return (C);
 }
 
-GMT_LOCAL void Free_Ctrl (struct GMT_CTRL *GMT,struct FILTER1D_CTRL *C) {	/* Deallocate control structure */
+static void Free_Ctrl (struct GMT_CTRL *GMT,struct FILTER1D_CTRL *C) {	/* Deallocate control structure */
 	if (!C) return;
 	gmt_M_str_free (C->F.file);
 	gmt_free_array (GMT, &(C->T.T));
 	gmt_M_free (GMT, C);
 }
 
-GMT_LOCAL int usage (struct GMTAPI_CTRL *API, int level) {
+static int usage (struct GMTAPI_CTRL *API, int level) {
 	const char *name = gmt_show_name_and_purpose (API, THIS_MODULE_LIB, THIS_MODULE_CLASSIC_NAME, THIS_MODULE_PURPOSE);
 	if (level == GMT_MODULE_PURPOSE) return (GMT_NOERROR);
 	GMT_Message (API, GMT_TIME_NONE, "usage: %s [<table>] -F<type><width>[<modifiers>] [-D<increment>] [-E]\n", name);
@@ -247,7 +247,7 @@ GMT_LOCAL char filter1d_set_unit_and_mode (const char *arg, unsigned int *mode) 
 	return (arg[k]);
 }
 
-GMT_LOCAL int parse (struct GMT_CTRL *GMT, struct FILTER1D_CTRL *Ctrl, struct GMT_OPTION *options) {
+static int parse (struct GMT_CTRL *GMT, struct FILTER1D_CTRL *Ctrl, struct GMT_OPTION *options) {
 	/* This parses the options provided to filter1d and sets parameters in CTRL.
 	 * Any GMT common options will override values set previously by other commands.
 	 * It also replaces any file names specified as input or output with the data ID

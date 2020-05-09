@@ -53,69 +53,69 @@
 
 struct PSROSE_CTRL {	/* All control options for this program (except common args) */
 	/* active is true if the option has been activated */
-	struct A {	/* -A<sector_angle>[+r] */
+	struct PSROSE_A {	/* -A<sector_angle>[+r] */
 		bool active;
 		bool rose;
 		double inc;
 	} A;
-	struct C {	/* -C<cpt> */
+	struct PSROSE_C {	/* -C<cpt> */
 		bool active;
 		char *file;
 	} C;
-	struct D {	/* -D */
+	struct PSROSE_D {	/* -D */
 		bool active;
 	} D;
-	struct E {	/* -Em|[+w]<modefile> */
+	struct PSROSE_E {	/* -Em|[+w]<modefile> */
 		bool active;
 		bool mode;
 		bool mean;
 		char *file;
 	} E;
-	struct F {	/* -F */
+	struct PSROSE_F {	/* -F */
 		bool active;
 	} F;
-	struct G {	/* -G<fill> */
+	struct PSROSE_G {	/* -G<fill> */
 		bool active;
 		struct GMT_FILL fill;
 	} G;
-	struct I {	/* -I */
+	struct PSROSE_I {	/* -I */
 		bool active;
 	} I;
-	struct L {	/* -L */
+	struct PSROSE_L {	/* -L */
 		bool active;
 		char *w, *e, *s, *n;
 	} L;
-	struct M {	/* -M[<size>][<modifiers>] */
+	struct PSROSE_M {	/* -M[<size>][<modifiers>] */
 		bool active;
 		struct GMT_SYMBOL S;
 	} M;
-	struct N {	/* -N */
+	struct PSROSE_N {	/* -N */
 		bool active;
 	} N;
-	struct Q {	/* -Q<alpha> */
+	struct PSROSE_Q {	/* -Q<alpha> */
 		bool active;
 		double value;
 	} Q;
-	struct S {	/* -S */
+	struct PSROSE_S {	/* -S */
 		bool active;
 		bool normalize;
 		double scale;	/* Get this via -JX */
 	} S;
-	struct T {	/* -T */
+	struct PSROSE_T {	/* -T */
 		bool active;
 	} T;
-	struct W {	/* -W[v]<pen> */
+	struct PSROSE_W {	/* -W[v]<pen> */
 		bool active[2];
 		struct GMT_PEN pen[2];
 	} W;
-	struct Z {	/* -Zu|<scale> */
+	struct PSROSE_Z {	/* -Zu|<scale> */
 		bool active;
 		unsigned int mode;
 		double scale;
 	} Z;
 };
 
-GMT_LOCAL void *New_Ctrl (struct GMT_CTRL *GMT) {	/* Allocate and initialize a new control structure */
+static void *New_Ctrl (struct GMT_CTRL *GMT) {	/* Allocate and initialize a new control structure */
 	struct PSROSE_CTRL *C = NULL;
 
 	C = gmt_M_memory (GMT, NULL, 1, struct PSROSE_CTRL);
@@ -129,7 +129,7 @@ GMT_LOCAL void *New_Ctrl (struct GMT_CTRL *GMT) {	/* Allocate and initialize a n
 	return (C);
 }
 
-GMT_LOCAL void Free_Ctrl (struct GMT_CTRL *GMT, struct PSROSE_CTRL *C) {	/* Deallocate control structure */
+static void Free_Ctrl (struct GMT_CTRL *GMT, struct PSROSE_CTRL *C) {	/* Deallocate control structure */
 	if (!C) return;
 	gmt_M_str_free (C->E.file);
 	gmt_M_str_free (C->L.w);
@@ -149,7 +149,7 @@ GMT_LOCAL double psrose_critical_resultant (double alpha, int n) {
 	return (Rn);
 }
 
-GMT_LOCAL int usage (struct GMTAPI_CTRL *API, int level) {
+static int usage (struct GMTAPI_CTRL *API, int level) {
 	char *choice[2] = {"OFF", "ON"};
 
 	/* This displays the psrose synopsis and optionally full usage information */
@@ -211,7 +211,7 @@ GMT_LOCAL int usage (struct GMTAPI_CTRL *API, int level) {
 	return (GMT_MODULE_USAGE);
 }
 
-GMT_LOCAL int parse (struct GMT_CTRL *GMT, struct PSROSE_CTRL *Ctrl, struct GMT_OPTION *options) {
+static int parse (struct GMT_CTRL *GMT, struct PSROSE_CTRL *Ctrl, struct GMT_OPTION *options) {
 	/* This parses the options provided to psrose and sets parameters in Ctrl.
 	 * Note Ctrl has already been initialized and non-zero default values set.
 	 * Any GMT common options will override values set previously by other commands.
@@ -556,6 +556,11 @@ EXTERN_MSC int GMT_psrose (void *V_API, int mode, void *args) {
 			else if (gmt_M_rec_is_eof (GMT)) 		/* Reached end of file */
 				break;
 			continue;	/* Go back and read the next record */
+		}
+
+		if (In->data == NULL) {
+			gmt_quit_bad_record (API, In);
+			Return (API->error);
 		}
 
 		/* Data record to process */

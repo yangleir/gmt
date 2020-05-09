@@ -40,46 +40,46 @@
 #define THIS_MODULE_OPTIONS	"->RVfn"
 
 struct GRDINTERPOLATE_CTRL {
-	struct In {
+	struct GRDINTERPOLATE_In {
 		bool active;
 		char **file;
 		unsigned int n_files;
 	} In;
-	struct E {	/* -E<file>|<line1>[,<line2>,...][+a<az>][+c][+g][+i<step>][+l<length>][+n<np][+o<az>][+p][+r<radius>][+x] */
+	struct GRDINTERPOLATE_E {	/* -E<file>|<line1>[,<line2>,...][+a<az>][+c][+g][+i<step>][+l<length>][+n<np][+o<az>][+p][+r<radius>][+x] */
 		bool active;
 		unsigned int mode;
 		char *lines;
 		double step;
 		char unit;
 	} E;
-	struct F {	/* -Fl|a|c[1|2] */
+	struct GRDINTERPOLATE_F {	/* -Fl|a|c[1|2] */
 		bool active;
 		unsigned int mode;
 		unsigned int type;
 		char spline[GMT_LEN8];
 	} F;
-	struct G {	/* -G<output_grdfile>  */
+	struct GRDINTERPOLATE_G {	/* -G<output_grdfile>  */
 		bool active;
 		char *file;
 	} G;
-	struct S {	/* -S<x>/<y>|<pointfile>[+h<header>] */
+	struct GRDINTERPOLATE_S {	/* -S<x>/<y>|<pointfile>[+h<header>] */
 		bool active;
 		double x, y;
 		char *file;
 		char *header;
 	} S;
-	struct T {	/* -T<start>/<stop>/<inc> or -T<value> */
+	struct GRDINTERPOLATE_T {	/* -T<start>/<stop>/<inc> or -T<value> */
 		bool active;
 		struct GMT_ARRAY T;
 		char *string;
 	} T;
-	struct Z {	/* -Z<min>/<max>/<inc>, -Z<file>, or -Z<list> */
+	struct GRDINTERPOLATE_Z {	/* -Z<min>/<max>/<inc>, -Z<file>, or -Z<list> */
 		bool active[2];
 		struct GMT_ARRAY T;
 	} Z;
 };
 
-GMT_LOCAL void *New_Ctrl (struct GMT_CTRL *GMT) {	/* Allocate and initialize a new control structure */
+static void *New_Ctrl (struct GMT_CTRL *GMT) {	/* Allocate and initialize a new control structure */
 	static char type[3] = {'l', 'a', 'c'};
 	struct GRDINTERPOLATE_CTRL *C;
 
@@ -96,7 +96,7 @@ GMT_LOCAL void grdinterpolate_free_files (struct GMT_CTRL *GMT, char ***list, un
 	gmt_M_free (GMT, *list);
 }
 
-GMT_LOCAL void Free_Ctrl (struct GMT_CTRL *GMT, struct GRDINTERPOLATE_CTRL *C) {	/* Deallocate control structure */
+static void Free_Ctrl (struct GMT_CTRL *GMT, struct GRDINTERPOLATE_CTRL *C) {	/* Deallocate control structure */
 	if (!C) return;
 	grdinterpolate_free_files (GMT, &(C->In.file), C->In.n_files);
 	gmt_M_str_free (C->G.file);
@@ -108,7 +108,7 @@ GMT_LOCAL void Free_Ctrl (struct GMT_CTRL *GMT, struct GRDINTERPOLATE_CTRL *C) {
 	gmt_M_free (GMT, C);
 }
 
-GMT_LOCAL int usage (struct GMTAPI_CTRL *API, int level) {
+static int usage (struct GMTAPI_CTRL *API, int level) {
 	static char type[3] = {'l', 'a', 'c'};
 	const char *name = gmt_show_name_and_purpose (API, THIS_MODULE_LIB, THIS_MODULE_CLASSIC_NAME, THIS_MODULE_PURPOSE);
 	if (level == GMT_MODULE_PURPOSE) return (GMT_NOERROR);
@@ -166,7 +166,7 @@ GMT_LOCAL int usage (struct GMTAPI_CTRL *API, int level) {
 	return (GMT_MODULE_USAGE);
 }
 
-GMT_LOCAL int parse (struct GMT_CTRL *GMT, struct GRDINTERPOLATE_CTRL *Ctrl, struct GMT_OPTION *options) {
+static int parse (struct GMT_CTRL *GMT, struct GRDINTERPOLATE_CTRL *Ctrl, struct GMT_OPTION *options) {
 	/* This parses the options provided to grdcut and sets parameters in CTRL.
 	 * Any GMT common options will override values set previously by other commands.
 	 * It also replaces any file names specified as input or output with the data ID

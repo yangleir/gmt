@@ -15,7 +15,7 @@
  *	Contact info: www.generic-mapping-tools.org
  *--------------------------------------------------------------------*/
 /*
- * Brief synopsis: grdvolume reads a 2d grid file, and calculates the volume
+ * Brief synopsis: grdvolume reads a 2D grid file, and calculates the volume
  * under the surface using exact integration of the bilinear interpolating
  * surface.  As an option, the user may supply a contour value; then the
  * volume is only integrated inside the chosen contour.
@@ -36,35 +36,42 @@
 #define THIS_MODULE_OPTIONS "-RVfho"
 
 struct GRDVOLUME_CTRL {
-	struct In {
+	struct GRDVOLUME_In {
 		bool active;
 		char *file;
 	} In;
-	struct C {	/* -C */
+	struct GRDVOLUME_C {	/* -C */
 		bool active;
 		bool reverse, reverse_min;
 		double low, high, inc;
 	} C;
-	struct L {	/* -L<base> */
+	struct GRDVOLUME_D {	/* -D */
+		bool active;
+	} D;
+	struct GRDVOLUME_L {	/* -L<base> */
 		bool active;
 		double value;
 	} L;
-	struct S {	/* -S */
+	struct GRDVOLUME_S {	/* -S */
 		bool active;
 		char unit;
 	} S;
-	struct T {	/* -T[c|z] */
+	struct GRDVOLUME_T {	/* -T[c|z] */
 		bool active;
 		unsigned int mode;
 	} T;
-	struct Z {	/* Z<fact>[/<shift>] */
+	struct GRDVOLUME_Z {	/* Z<fact>[/<shift>] */
 		bool active;
 		double scale, offset;
 	} Z;
 };
 
+/* For equations underlying the math here, see the explanation in
+ * https://github.com/GenericMappingTools/sandbox/blob/master/gurudocs/grdvolume_integration.pdf
+  */
+
 /* This function returns the volume bounded by a trapezoid based on two vertical
- * lines x0 and x1 and two horizontal lines y0 = ax +b and y1 = cx + d
+ * lines x0 and x1 and two horizontal lines y0 = ax + b and y1 = cx + d
  */
 
 GMT_LOCAL double grdvolume_vol_prism_frac_x (struct GMT_GRID *G, uint64_t ij, double x0, double x1, double a, double b, double c, double d) {
@@ -146,7 +153,7 @@ GMT_LOCAL void grdvolume_NE_triangle (struct GMT_GRID *G, uint64_t ij, bool tria
 	y1_1 = y1 - 1.0;
 	if (x0_1 != 0.0) {
 		a = y1_1 / x0_1;
-		frac = grdvolume_vol_prism_frac_x (G, ij, x0, 1.0, a, 1.0 - a * x0, 0.0, 0.0);
+		frac = grdvolume_vol_prism_frac_x (G, ij, x0, 1.0, a, 1.0 - a * x0, 0.0, 1.0);
 	}
 	if (triangle) {
 		*dv += frac;
@@ -281,7 +288,7 @@ GMT_LOCAL int grdvolume_ors_find_kink (struct GMT_CTRL *GMT, double y[], unsigne
 	return (im);
 }
 
-GMT_LOCAL void *New_Ctrl (struct GMT_CTRL *GMT) {	/* Allocate and initialize a new control structure */
+static void *New_Ctrl (struct GMT_CTRL *GMT) {	/* Allocate and initialize a new control structure */
 	struct GRDVOLUME_CTRL *C;
 
 	C = gmt_M_memory (GMT, NULL, 1, struct GRDVOLUME_CTRL);
@@ -293,16 +300,16 @@ GMT_LOCAL void *New_Ctrl (struct GMT_CTRL *GMT) {	/* Allocate and initialize a n
 	return (C);
 }
 
-GMT_LOCAL void Free_Ctrl (struct GMT_CTRL *GMT, struct GRDVOLUME_CTRL *C) {	/* Deallocate control structure */
+static void Free_Ctrl (struct GMT_CTRL *GMT, struct GRDVOLUME_CTRL *C) {	/* Deallocate control structure */
 	if (!C) return;
 	gmt_M_str_free (C->In.file);
 	gmt_M_free (GMT, C);
 }
 
-GMT_LOCAL int usage (struct GMTAPI_CTRL *API, int level) {
+static int usage (struct GMTAPI_CTRL *API, int level) {
 	const char *name = gmt_show_name_and_purpose (API, THIS_MODULE_LIB, THIS_MODULE_CLASSIC_NAME, THIS_MODULE_PURPOSE);
 	if (level == GMT_MODULE_PURPOSE) return (GMT_NOERROR);
-	GMT_Message (API, GMT_TIME_NONE, "usage: %s <ingrid> [-C<cval> or -C<low>/<high>/<delta> or -Cr<low>/<high> or -Cr<cval>] [-L<base>]\n", name);
+	GMT_Message (API, GMT_TIME_NONE, "usage: %s <ingrid> [-C<cval> or -C<low>/<high>/<delta> or -Cr<low>/<high> or -Cr<cval>] [-D] [-L<base>]\n", name);
 	GMT_Message (API, GMT_TIME_NONE, "\t[-S<unit>] [-T[c|h]] [%s] [%s] [-Z<fact>[/<shift>]]\n\t[%s] [%s] [%s] [%s]\n\n",
 		GMT_Rgeo_OPT, GMT_V_OPT, GMT_f_OPT, GMT_ho_OPT, GMT_o_OPT, GMT_PAR_OPT);
 
@@ -312,9 +319,10 @@ GMT_LOCAL int usage (struct GMTAPI_CTRL *API, int level) {
 	GMT_Message (API, GMT_TIME_NONE, "\n\tOPTIONS:\n");
 	GMT_Message (API, GMT_TIME_NONE, "\t-C Find area, volume, and mean height inside the given <cval> contour,\n");
 	GMT_Message (API, GMT_TIME_NONE, "\t   OR search using all contours from <low> to <high> in steps of <delta>.\n");
-	GMT_Message (API, GMT_TIME_NONE, "\t   [Default returns area, volume and mean height of entire grid].\n");
+	GMT_Message (API, GMT_TIME_NONE, "\t   [Default returns cval=0, area, volume and mean height of entire grid].\n");
 	GMT_Message (API, GMT_TIME_NONE, "\t   OR append r (-Cr) to compute 'outside' area and volume between <low> and <high>.\n");
 	GMT_Message (API, GMT_TIME_NONE, "\t   or below <cval> and grid's minimum.\n");
+	GMT_Message (API, GMT_TIME_NONE, "\t-D In conjunction with -C<low>/<high>/<delta>, report slice volumes and area.\n");
 	GMT_Message (API, GMT_TIME_NONE, "\t-L Add volume from <base> up to contour [Default is from contour and up only].\n");
 	GMT_Message (API, GMT_TIME_NONE, "\t-S For geographic grids we convert degrees to \"Flat-Earth\" distances in meters.\n");
 	GMT_Message (API, GMT_TIME_NONE, "\t   Append a unit from %s to select another distance unit.\n", GMT_LEN_UNITS2_DISPLAY);
@@ -327,7 +335,7 @@ GMT_LOCAL int usage (struct GMTAPI_CTRL *API, int level) {
 	return (GMT_MODULE_USAGE);
 }
 
-GMT_LOCAL int parse (struct GMT_CTRL *GMT, struct GRDVOLUME_CTRL *Ctrl, struct GMT_OPTION *options) {
+static int parse (struct GMT_CTRL *GMT, struct GRDVOLUME_CTRL *Ctrl, struct GMT_OPTION *options) {
 	/* This parses the options provided to grdvolume and sets parameters in Ctrl.
 	 * Note Ctrl has already been initialized and non-zero default values set.
 	 * Any GMT common options will override values set previously by other commands.
@@ -383,6 +391,9 @@ GMT_LOCAL int parse (struct GMT_CTRL *GMT, struct GRDVOLUME_CTRL *Ctrl, struct G
 						Ctrl->C.high = Ctrl->C.low, Ctrl->C.inc = 1.0;	/* So calculation of ncontours will yield 1 */
 				}
 				break;
+			case 'D':
+				Ctrl->D.active = true;
+				break;
 			case 'L':
 				Ctrl->L.active = true;
 				if (opt->arg[0]) Ctrl->L.value = atof (opt->arg);
@@ -427,6 +438,8 @@ GMT_LOCAL int parse (struct GMT_CTRL *GMT, struct GRDVOLUME_CTRL *Ctrl, struct G
 	                                   "Option -S: Must append one of %s\n", GMT_LEN_UNITS2_DISPLAY);
 	n_errors += gmt_M_check_condition (GMT, Ctrl->L.active && gmt_M_is_dnan (Ctrl->L.value),
 	                                   "Option -L: Must specify base\n");
+	n_errors += gmt_M_check_condition (GMT, Ctrl->D.active && n < 3,
+	                                   "Option -D: Must specify a range of contours with -C\n");
 	n_errors += gmt_M_check_condition (GMT, Ctrl->T.active && !Ctrl->C.active,
 	                                   "Option -T: Must also specify -Clow/high/delta\n");
 	n_errors += gmt_M_check_condition (GMT, Ctrl->T.active && Ctrl->C.active && doubleAlmostEqualZero (Ctrl->C.high, Ctrl->C.low),
@@ -716,7 +729,14 @@ EXTERN_MSC int GMT_grdvolume (void *V_API, int mode, void *args) {
 			out[0] = 0;	out[1] = area[0] - area[1];	out[2] = vol[0] - vol[1];	out[3] = out[2] / out[1];
 			GMT_Put_Record (API, GMT_WRITE_DATA, Out);	/* Write this to output */
 		}
-		else {
+		else if (Ctrl->D.active) {	/* Get slice volumes */
+			out[3] = Ctrl->C.inc;	/* Fixed slice height = thickness */
+			for (c = 0; c < (n_contours-1); c++) {
+				out[0] = Ctrl->C.low + c * Ctrl->C.inc;	out[1] = area[c];	out[2] = vol[c] - vol[c+1];
+				GMT_Put_Record (API, GMT_WRITE_DATA, Out);	/* Write this to output */
+			}
+		}
+		else {	/* Get volumes above contours */
 			for (c = 0; c < n_contours; c++) {
 				out[0] = Ctrl->C.low + c * Ctrl->C.inc;	out[1] = area[c];	out[2] = vol[c];	out[3] = height[c];
 				GMT_Put_Record (API, GMT_WRITE_DATA, Out);	/* Write this to output */

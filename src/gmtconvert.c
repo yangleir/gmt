@@ -44,67 +44,67 @@
 /* Control structure for gmtconvert */
 
 struct GMTCONVERT_CTRL {
-	struct Out {	/* -> */
+	struct GMTCONVERT_Out {	/* -> */
 		bool active;
 		char *file;
 	} Out;
-	struct A {	/* -A */
+	struct GMTCONVERT_A {	/* -A */
 		bool active;
 	} A;
-	struct C {	/* -C[+l<min>+u<max>+i>] */
+	struct GMTCONVERT_C {	/* -C[+l<min>+u<max>+i>] */
 		bool active, invert;
 		uint64_t min, max;
 	} C;
-	struct D {	/* -D[<template>][+o<orig>] */
+	struct GMTCONVERT_D {	/* -D[<template>][+o<orig>] */
 		bool active;
 		bool origin;
 		unsigned int mode;
 		unsigned int t_orig, s_orig;
 		char *name;
 	} D;
-	struct E {	/* -E */
+	struct GMTCONVERT_E {	/* -E */
 		bool active;
 		bool end;
 		int mode;	/* -3, -1, -1, 0, or increment stride */
 	} E;
-	struct F {	/* -F<mode> */
+	struct GMTCONVERT_F {	/* -F<mode> */
 		bool active;
 		struct GMT_SEGMENTIZE S;
 	} F;
-	struct I {	/* -I[ast] */
+	struct GMTCONVERT_I {	/* -I[ast] */
 		bool active;
 		unsigned int mode;
 	} I;
-	struct L {	/* -L */
+	struct GMTCONVERT_L {	/* -L */
 		bool active;
 	} L;
-	struct N {	/* -N<col>[+a|d] sorting */
+	struct GMTCONVERT_N {	/* -N<col>[+a|d] sorting */
 		bool active;
 		int dir;	/* +1 ascending [default], -1 descending */
 		uint64_t col;
 	} N;
-	struct Q {	/* -Q<selections> */
+	struct GMTCONVERT_Q {	/* -Q<selections> */
 		bool active;
 		struct GMT_INT_SELECTION *select;
 	} Q;
-	struct S {	/* -S[~]\"search string\" */
+	struct GMTCONVERT_S {	/* -S[~]\"search string\" */
 		bool active;
 		struct GMT_TEXT_SELECTION *select;
 	} S;
-	struct T {	/* -T[sd] */
+	struct GMTCONVERT_T {	/* -T[sd] */
 		bool active[2];
 	} T;
-	struct W {	/* -W[+n] */
+	struct GMTCONVERT_W {	/* -W[+n] */
 		bool active;
 		unsigned int mode;
 	} W;
-	struct Z {	/* -Z[<first>]:[<last>] [DEPRECATED - use -q instead]*/
+	struct GMTCONVERT_Z {	/* -Z[<first>]:[<last>] [DEPRECATED - use -q instead]*/
 		bool active;
 		int64_t first, last;
 	} Z;
 };
 
-GMT_LOCAL void *New_Ctrl (struct GMT_CTRL *GMT) {	/* Allocate and initialize a new control structure */
+static void *New_Ctrl (struct GMT_CTRL *GMT) {	/* Allocate and initialize a new control structure */
 	struct GMTCONVERT_CTRL *C;
 
 	C = gmt_M_memory (GMT, NULL, 1, struct GMTCONVERT_CTRL);
@@ -115,7 +115,7 @@ GMT_LOCAL void *New_Ctrl (struct GMT_CTRL *GMT) {	/* Allocate and initialize a n
 	return (C);
 }
 
-GMT_LOCAL void Free_Ctrl (struct GMT_CTRL *GMT, struct GMTCONVERT_CTRL *C) {	/* Deallocate control structure */
+static void Free_Ctrl (struct GMT_CTRL *GMT, struct GMTCONVERT_CTRL *C) {	/* Deallocate control structure */
 	if (!C) return;
 	gmt_M_str_free (C->Out.file);
 	gmt_M_str_free (C->D.name);
@@ -124,7 +124,7 @@ GMT_LOCAL void Free_Ctrl (struct GMT_CTRL *GMT, struct GMTCONVERT_CTRL *C) {	/* 
 	gmt_M_free (GMT, C);
 }
 
-GMT_LOCAL int usage (struct GMTAPI_CTRL *API, int level) {
+static int usage (struct GMTAPI_CTRL *API, int level) {
 	const char *name = gmt_show_name_and_purpose (API, THIS_MODULE_LIB, THIS_MODULE_CLASSIC_NAME, THIS_MODULE_PURPOSE);
 	if (level == GMT_MODULE_PURPOSE) return (GMT_NOERROR);
 	GMT_Message (API, GMT_TIME_NONE, "usage: %s [<table>] [-A] [-C[+l<min>][+u<max>][+i]] [-D[<template>[+o<orig>]]] [-E[f|l|m|M<stride>]] [-F<arg>] [-I[tsr]]\n", name);
@@ -185,7 +185,7 @@ GMT_LOCAL int usage (struct GMTAPI_CTRL *API, int level) {
 	return (GMT_MODULE_USAGE);
 }
 
-GMT_LOCAL int parse (struct GMT_CTRL *GMT, struct GMTCONVERT_CTRL *Ctrl, struct GMT_OPTION *options) {
+static int parse (struct GMT_CTRL *GMT, struct GMTCONVERT_CTRL *Ctrl, struct GMT_OPTION *options) {
 	/* This parses the options provided to gmtconvert and sets parameters in CTRL.
 	 * Any GMT common options will override values set previously by other commands.
 	 * It also replaces any file names specified as input or output with the data ID

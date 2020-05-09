@@ -78,16 +78,6 @@
 #endif
 
 #define gmt_M_axis_is_geo_strict(C,axis) (((axis) == GMT_X && gmt_M_type (C, GMT_IN, axis) & GMT_IS_LON) || ((axis) == GMT_Y && gmt_M_type (C, GMT_IN, axis) & GMT_IS_LAT))
-
-/* Functions declared elsewhere but needed here once */
-EXTERN_MSC int gmt_load_custom_annot (struct GMT_CTRL *GMT, struct GMT_PLOT_AXIS *A, char item, double **xx, char ***labels);
-EXTERN_MSC bool gmt_genper_reset (struct GMT_CTRL *GMT, bool reset);
-EXTERN_MSC void psl_set_txt_array (struct PSL_CTRL *PSL, const char *param, char *array[], int n);
-EXTERN_MSC void psl_set_int_array (struct PSL_CTRL *PSL, const char *param, int *array, int n);
-EXTERN_MSC double gmtmap_left_boundary (struct GMT_CTRL *GMT, double y);
-EXTERN_MSC double gmtmap_right_boundary (struct GMT_CTRL *GMT, double y);
-EXTERN_MSC void gmt_iobl (struct GMT_CTRL *GMT, double *lon, double *lat, double olon, double olat);	/* Convert oblique lon/lat to regular lon/lat */
-
 #define PSL_IZ(PSL,z) ((int)lrint ((z) * PSL->internal.dpu))
 
 /* Local variables to this file */
@@ -484,15 +474,15 @@ GMT_LOCAL void gmtplot_linearx_oblgrid (struct GMT_CTRL *GMT, struct PSL_CTRL *P
 	for (i = 0; i < nx - idup; i++) {	/* For each oblique meridian to draw */
 		/* Create lon,lat arrays of oblique coordinates for this meridian */
 		for (k = j = 0; k < np; k++, j++) {
-			gmt_iobl (GMT, &lon[j], &lat[j], x[i], D2R * lat_obl[k]);	/* Get regular coordinates of this point */
+			gmtlib_iobl (GMT, &lon[j], &lat[j], x[i], D2R * lat_obl[k]);	/* Get regular coordinates of this point */
 			lon[j] *= R2D;	lat[j] *= R2D;	/* Convert back to degrees */
 			if (lat_obl[k] < s_cap && k < np1 && lat_obl[k+1] > s_cap)	{	/* Must insert S pole cap latitude point */
-				j++;	gmt_iobl (GMT, &lon[j], &lat[j], x[i], D2R * s_cap);
+				j++;	gmtlib_iobl (GMT, &lon[j], &lat[j], x[i], D2R * s_cap);
 				lon[j] *= R2D;	lat[j] *= R2D;	/* Back to degrees */
 				nc1 = j;
 			}
 			else if (lat_obl[k] < p_cap && k < np1 && lat_obl[k+1] > p_cap) {	/* Must insert N pole cap latitude point */
-				j++; gmt_iobl (GMT, &lon[j], &lat[j], x[i], D2R * p_cap);
+				j++; gmtlib_iobl (GMT, &lon[j], &lat[j], x[i], D2R * p_cap);
 				lon[j] *= R2D;	lat[j] *= R2D;	/* Back to degrees */
 				nc2 = j;
 			}
@@ -511,15 +501,15 @@ GMT_LOCAL void gmtplot_linearx_oblgrid (struct GMT_CTRL *GMT, struct PSL_CTRL *P
 		nx = gmtlib_linear_array (GMT, 0.0, TWO_PI, D2R * GMT->current.setting.map_polar_cap[1], D2R * GMT->current.map.frame.axis[GMT_X].phase, &x);
 		for (i = 0; i < nx - idup; i++) {
 			for (k = j = 0; k < np; k++, j++) {
-				gmt_iobl (GMT, &lon[j], &lat[j], x[i], D2R * lat_obl[k]);	/* Get regular coordinates of this point */
+				gmtlib_iobl (GMT, &lon[j], &lat[j], x[i], D2R * lat_obl[k]);	/* Get regular coordinates of this point */
 				lon[j] *= R2D;	lat[j] *= R2D;	/* Back to degrees */
 				if (lat_obl[k] < s_cap && k < np1 && lat_obl[k+1] > s_cap)	{	/* Must insert S pole cap latitude point */
-					j++;	gmt_iobl (GMT, &lon[j], &lat[j], x[i], D2R * s_cap);
+					j++;	gmtlib_iobl (GMT, &lon[j], &lat[j], x[i], D2R * s_cap);
 					lon[j] *= R2D;	lat[j] *= R2D;	/* Back to degrees */
 					nc1 = j;
 				}
 				else if (lat_obl[k] < p_cap && k < np1 && lat_obl[k+1] > p_cap) {	/* Must insert N pole cap latitude point */
-					j++; gmt_iobl (GMT, &lon[j], &lat[j], x[i], D2R * p_cap);
+					j++; gmtlib_iobl (GMT, &lon[j], &lat[j], x[i], D2R * p_cap);
 					lon[j] *= R2D;	lat[j] *= R2D;	/* Back to degrees */
 					nc2 = j;
 				}
@@ -597,7 +587,7 @@ GMT_LOCAL void gmtplot_lineary_oblgrid (struct GMT_CTRL *GMT, struct PSL_CTRL *P
 	lat = gmt_M_memory (GMT, NULL, np+2, double);
 	for (i = 0; i < ny; i++) {
 		for (k = 0; k < np; k++) {
-			gmt_iobl (GMT, &lon[k], &lat[k], lon_obl[k], y[i]);	/* Get regular coordinates of this point */
+			gmtlib_iobl (GMT, &lon[k], &lat[k], lon_obl[k], y[i]);	/* Get regular coordinates of this point */
 			lon[k] *= R2D;	lat[k] *= R2D;	/* Convert to degrees */
 		}
 		if ((GMT->current.plot.n = gmt_geo_to_xy_line (GMT, lon, lat, np)) == 0) continue;
@@ -609,13 +599,13 @@ GMT_LOCAL void gmtplot_lineary_oblgrid (struct GMT_CTRL *GMT, struct PSL_CTRL *P
 	if (cap) {	/* Draw the polar cap(s) with a separate spacing */
 		p_cap = D2R * GMT->current.setting.map_polar_cap[0];
 		for (k = 0; k < np; k++) {	/* S polar cap */
-			gmt_iobl (GMT, &lon[k], &lat[k], lon_obl[k], -p_cap);	/* Get regular coordinates of this point */
+			gmtlib_iobl (GMT, &lon[k], &lat[k], lon_obl[k], -p_cap);	/* Get regular coordinates of this point */
 			lon[k] *= R2D;	lat[k] *= R2D;	/* Convert to degrees */
 		}
 		if ((GMT->current.plot.n = gmt_geo_to_xy_line (GMT, lon, lat, np)) > 0)
 			gmt_plot_line (GMT, GMT->current.plot.x, GMT->current.plot.y, GMT->current.plot.pen, GMT->current.plot.n, PSL_LINEAR);
 		for (k = 0; k < np; k++) {	/* N polar cap */
-			gmt_iobl (GMT, &lon[k], &lat[k], lon_obl[k], p_cap);	/* Get regular coordinates of this point */
+			gmtlib_iobl (GMT, &lon[k], &lat[k], lon_obl[k], p_cap);	/* Get regular coordinates of this point */
 			lon[k] *= R2D;	lat[k] *= R2D;	/* Convert to degrees */
 		}
 		if ((GMT->current.plot.n = gmt_geo_to_xy_line (GMT, lon, lat, np)) > 0)
@@ -1633,7 +1623,7 @@ GMT_LOCAL void gmtplot_map_gridlines (struct GMT_CTRL *GMT, struct PSL_CTRL *PSL
 	if (i == 0) return;	/* No gridlines requested */
 
 	GMT_Report (GMT->parent, GMT_MSG_DEBUG, "Entering gmtplot_map_gridlines\n");
-	reset = gmt_genper_reset (GMT, reset);
+	reset = gmtlib_genper_reset (GMT, reset);
 
 	if (gmtplot_save_current_gridlines (GMT)) return;	/* Save a file with primary only gridline interval used under modern mode only; return if error */
 
@@ -1651,7 +1641,7 @@ GMT_LOCAL void gmtplot_map_gridlines (struct GMT_CTRL *GMT, struct PSL_CTRL *PSL
 
 		gmt_setpen (GMT, &GMT->current.setting.map_grid_pen[k]);
 
-		if (A[GMT_X]->item[k].special && (np = gmt_load_custom_annot (GMT, &GMT->current.map.frame.axis[GMT_X], 'g', &v, NULL))) {
+		if (A[GMT_X]->item[k].special && (np = gmtlib_load_custom_annot (GMT, &GMT->current.map.frame.axis[GMT_X], 'g', &v, NULL))) {
 			gmtplot_x_grid (GMT, PSL, s, n, v, np);
 			gmt_M_free (GMT, v);
 		}
@@ -1667,7 +1657,7 @@ GMT_LOCAL void gmtplot_map_gridlines (struct GMT_CTRL *GMT, struct PSL_CTRL *PSL
 		else	/* Draw grid lines that go S to N */
 			gmt_linearx_grid (GMT, PSL, w, e, s, n, dx);
 
-		if (A[GMT_Y]->item[k].special && (np = gmt_load_custom_annot (GMT, &GMT->current.map.frame.axis[GMT_Y], 'g', &v, NULL))) {
+		if (A[GMT_Y]->item[k].special && (np = gmtlib_load_custom_annot (GMT, &GMT->current.map.frame.axis[GMT_Y], 'g', &v, NULL))) {
 			gmtplot_y_grid (GMT, PSL, w, e, v, np);
 			gmt_M_free (GMT, v);
 		}
@@ -1685,7 +1675,7 @@ GMT_LOCAL void gmtplot_map_gridlines (struct GMT_CTRL *GMT, struct PSL_CTRL *PSL
 
 		PSL_setdash (PSL, NULL, 0);
 	}
-	gmt_genper_reset (GMT, reset);
+	gmtlib_genper_reset (GMT, reset);
 	GMT_Report (GMT->parent, GMT_MSG_DEBUG, "Exiting gmtplot_map_gridlines\n");
 }
 
@@ -2123,7 +2113,7 @@ GMT_LOCAL void gmtplot_consider_internal_annotations (struct GMT_CTRL *GMT, stru
 	unsigned int i, nx = 0, ny = 0, first = 0, form, lonlat, justify;
 	bool do_minutes, do_seconds, do_grid = false;
 	char label[GMT_LEN256] = {""}, format[GMT_LEN64] = {""}, **label_c = NULL;
-	double *val = NULL, *tval = NULL, dx, dy, shift, x0, y0, x1, y1, L, ds, dc, line_angle, text_angle, angle, dyg, dxg, xa, xb, ya, yb, Sa, Ca;
+	double *val = NULL, *tval = NULL, dx, dy, x0, y0, x1, y1, L, ds, dc, line_angle, text_angle, angle, dyg, dxg, xa, xb, ya, yb, Sa, Ca;
 
 	if (GMT->current.map.frame.internal_annot == 0) return;	/* Not requested */
 
@@ -2214,7 +2204,6 @@ GMT_LOCAL void gmtplot_consider_internal_annotations (struct GMT_CTRL *GMT, stru
 				strncpy (label, label_c[i], GMT_LEN256-1);
 			else
 				gmtlib_get_annot_label (GMT, tval[i], label, do_minutes, do_seconds, 1, lonlat, GMT->current.map.is_world);
-			shift = gmtplot_shift_gridline (GMT, val[i], GMT_Y);
 			gmt_geo_to_xy (GMT, GMT->current.map.frame.internal_arg, val[i], &x0, &y0);
 			PSL_plottext (PSL, x0+dc, y0+ds, GMT->current.setting.font_annot[GMT_PRIMARY].size, label, text_angle, justify, form);
 			if (do_grid) {
@@ -2277,7 +2266,6 @@ GMT_LOCAL void gmtplot_consider_internal_annotations (struct GMT_CTRL *GMT, stru
 				strncpy (label, label_c[i], GMT_LEN256-1);
 			else
 				gmtlib_get_annot_label (GMT, val[i], label, do_minutes, do_seconds, 1, 0, GMT->current.map.is_world);
-			shift = gmtplot_shift_gridline (GMT, val[i], GMT_X);
 			gmt_geo_to_xy (GMT, val[i], GMT->current.map.frame.internal_arg, &x0, &y0);
 			gmt_geo_to_xy (GMT, val[i] + GMT->current.map.dlon, GMT->current.map.frame.internal_arg, &x1, &y1);
 			angle = d_atan2 (y1-y0, x1-x0);	/* Angle at longitude annotation */
@@ -3734,8 +3722,8 @@ GMT_LOCAL uint64_t gmtplot_geo_polygon (struct GMT_CTRL *GMT, double *lon, doubl
 
 		xp = gmt_M_memory (GMT, NULL, GMT->current.plot.n, double);
 
-		x_on_border[JUMP_R] = gmtmap_left_boundary;	/* Pointers to functions that supply the x-coordinate of boundary for given y */
-		x_on_border[JUMP_L] = gmtmap_right_boundary;
+		x_on_border[JUMP_R] = gmtlib_left_boundary;	/* Pointers to functions that supply the x-coordinate of boundary for given y */
+		x_on_border[JUMP_L] = gmtlib_right_boundary;
 
 		/* Do the main truncation of bulk of polygon */
 
@@ -4984,7 +4972,7 @@ void gmt_xy_axis (struct GMT_CTRL *GMT, double x0, double y0, double length, dou
 				else
 					gmtlib_get_coordinate_label (GMT, string, &GMT->current.plot.calclock, format, T, knots[nx1-1]);	/* Get annotation string */
 				PSL_deftextdim (PSL, "-w", font.size, string);	/* Compute the width */
-				PSL_command (PSL, " %g mul def\n", sin_a);	/* Multiply this width by sine of the angle to get the y-component */
+				PSL_command (PSL, " %.12g mul def\n", sin_a);	/* Multiply this width by sine of the angle to get the y-component */
 			}
 			if (annot_pos == 0)
 				PSL_command (PSL, "/PSL_A0_y PSL_A0_y %d add ", PSL_IZ (PSL, GMT->current.setting.map_annot_offset[annot_pos]));
@@ -5003,9 +4991,9 @@ void gmt_xy_axis (struct GMT_CTRL *GMT, double x0, double y0, double length, dou
 				PSL_command (PSL, "%d PSL_A%d_y MM\n", PSL_IZ (PSL, x), annot_pos);
 				if (angled) {	/* Must compensate for rotated textbox sticking too close to axis */
 					if (below) /* S axis */
-						PSL_command (PSL, "0 PSL_AH%d 1 %g sub mul G\n", annot_pos, cos_a);
+						PSL_command (PSL, "0 PSL_AH%d 1 %.12g sub mul G\n", annot_pos, cos_a);
 					else /* N axis */
-						PSL_command (PSL, "0 PSL_AH%d %g mul G\n", annot_pos, cos_a);
+						PSL_command (PSL, "0 PSL_AH%d %.12g mul G\n", annot_pos, cos_a);
 				}
 				if (label_c && label_c[i] && label_c[i][0])
 					strncpy (string, label_c[i], GMT_LEN256-1);
@@ -5554,7 +5542,7 @@ void gmt_vertical_axis (struct GMT_CTRL *GMT, unsigned int mode) {
 			gmt_xyz_to_xy (GMT, nesw[(quadrant/2*2+1)%4], nesw[((quadrant+1)/2*2)%4], GMT->common.R.wesn[ZLO], &xx, &yy);
 			/* Restrict reduced azimuth to -45 to 45 range */
 			az = GMT->current.proj.z_project.view_azimuth - 90.0 - floor ((GMT->current.proj.z_project.view_azimuth - 45.0) / 90.0) * 90.0;
-			PSL_command (PSL, "/PSL_GPP matrix currentmatrix def [%g %g %g %g %g %g] concat\n",
+			PSL_command (PSL, "/PSL_GPP matrix currentmatrix def [%.12g %.12g %.12g %.12g %.12g %.12g] concat\n",
 				cosd(az), sind(az) * GMT->current.proj.z_project.sin_el, 0.0, GMT->current.proj.z_project.cos_el, xx * PSL->internal.x2ix, yy * PSL->internal.y2iy);
 			gmt_xy_axis (GMT, 0.0, -GMT->common.R.wesn[ZLO], GMT->current.proj.zmax - GMT->current.proj.zmin, GMT->common.R.wesn[ZLO],
 				GMT->common.R.wesn[ZHI], &GMT->current.map.frame.axis[GMT_Z], true, GMT->current.map.frame.side[Z_SIDE]);
@@ -6204,7 +6192,7 @@ int gmt_draw_custom_symbol (struct GMT_CTRL *GMT, double x0, double y0, double s
 		}
 		PSL_command (PSL, "V ");
 		PSL_setorigin (PSL, x0-off, y0-fy*off, 0.0, PSL_FWD);
-		PSL_command (PSL, "%g dup scale ", size[0]);
+		PSL_command (PSL, "%.12g dup scale ", size[0]);
 		PSL_command (PSL, "Sk_%s U\n", symbol->name);
 		return (GMT_OK);
 	}
@@ -7750,7 +7738,7 @@ struct PSL_CTRL *gmt_plotinit (struct GMT_CTRL *GMT, struct GMT_OPTION *options)
 	}
 	if (!O_active) {	/* New plot, set GMT bounding box and reset layer counter */
 		/* Add GMT bounding box comment which gives dimensions of inner frame */
-		PSL_command (PSL, "%%GMTBoundingBox: %g %g %g %g\n",
+		PSL_command (PSL, "%%GMTBoundingBox: %.12g %.12g %.12g %.12g\n",
 			GMT->current.setting.map_origin[GMT_X] * 72.0, GMT->current.setting.map_origin[GMT_Y] * 72.0,
 			GMT->current.map.width * 72.0, GMT->current.map.height * 72.0);
 		GMT->current.ps.layer = 0;
@@ -7764,7 +7752,7 @@ struct PSL_CTRL *gmt_plotinit (struct GMT_CTRL *GMT, struct GMT_OPTION *options)
 			GMT->common.t.active = false;
 		}
 		else
-			PSL_command (PSL, "%g /%s PSL_transp\n", 1.0 - 0.01 * GMT->common.t.value, GMT->current.setting.ps_transpmode);
+			PSL_command (PSL, "%.12g /%s PSL_transp\n", 1.0 - 0.01 * GMT->common.t.value, GMT->current.setting.ps_transpmode);
 	}
 	/* If requested, place the timestamp */
 
@@ -9020,7 +9008,7 @@ void gmt_plane_perspective (struct GMT_CTRL *GMT, int plane, double level) {
 		}
 
 		/* First restore the old matrix or save the old one when that was not done before */
-		PSL_command (PSL, "%s [%g %g %g %g %g %g] concat\n",
+		PSL_command (PSL, "%s [%.12g %.12g %.12g %.12g %.12g %.12g] concat\n",
 			(GMT->current.proj.z_project.plane >= 0) ? "PSL_GPP setmatrix" : "/PSL_GPP matrix currentmatrix def",
 			a, b, c, d, e * PSL->internal.x2ix, f * PSL->internal.y2iy);
 	}

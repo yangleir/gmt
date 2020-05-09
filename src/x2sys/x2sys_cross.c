@@ -51,48 +51,48 @@ enum x2sys_sets {
 };
 
 struct X2SYS_CROSS_CTRL {
-	struct X2S_CROSS_A {	/* -A */
+	struct X2SYS_CROSS_A {	/* -A */
 		bool active;
 		char *file;
 	} A;
-	struct X2S_CROSS_C {	/* -C */
+	struct X2SYS_CROSS_C {	/* -C */
 		bool active;
 		char *file;
 	} C;
-	struct X2S_CROSS_D {	/* -Dg|s|n */
+	struct X2SYS_CROSS_D {	/* -Dg|s|n */
 		bool active;	/* Force selection if true, else examine */
 		int mode;	/* -1 for S pole, +1 for N pole */
 	} D;
-	struct X2S_CROSS_I {	/* -I */
+	struct X2SYS_CROSS_I {	/* -I */
 		bool active;
 		int mode;
 	} I;
-	struct X2S_CROSS_S {	/* -S */
+	struct X2SYS_CROSS_S {	/* -S */
 		bool active[2];
 		double limit[3];
 	} S;
-	struct X2S_CROSS_T {	/* -T */
+	struct X2SYS_CROSS_T {	/* -T */
 		bool active;
 		char *TAG;
 	} T;
-	struct X2S_CROSS_W {	/* -W */
+	struct X2SYS_CROSS_W {	/* -W */
 		bool active;
 		unsigned int width;
 	} W;
-	struct X2S_CROSS_Q {	/* -Q */
+	struct X2SYS_CROSS_Q {	/* -Q */
 		bool active;
 		int mode;
 	} Q;
-	struct X2S_CROSS_Z {	/* -Z */
+	struct X2SYS_CROSS_Z {	/* -Z */
 		bool active;
 	} Z;
 };
 
-struct PAIR {				/* Used with -Kkombinations.lis option */
+struct X2SYS_CROSS_PAIR {				/* Used with -Kkombinations.lis option */
 	char *id1, *id2;
 };
 
-GMT_LOCAL void *New_Ctrl (struct GMT_CTRL *GMT) {	/* Allocate and initialize a new control structure */
+static void *New_Ctrl (struct GMT_CTRL *GMT) {	/* Allocate and initialize a new control structure */
 	struct X2SYS_CROSS_CTRL *C;
 
 	C = gmt_M_memory (GMT, NULL, 1, struct X2SYS_CROSS_CTRL);
@@ -104,7 +104,7 @@ GMT_LOCAL void *New_Ctrl (struct GMT_CTRL *GMT) {	/* Allocate and initialize a n
 	return (C);
 }
 
-GMT_LOCAL void Free_Ctrl (struct GMT_CTRL *GMT, struct X2SYS_CROSS_CTRL *C) {	/* Deallocate control structure */
+static void Free_Ctrl (struct GMT_CTRL *GMT, struct X2SYS_CROSS_CTRL *C) {	/* Deallocate control structure */
 	if (!C) return;
 	gmt_M_str_free (C->A.file);
 	gmt_M_str_free (C->C.file);
@@ -112,7 +112,7 @@ GMT_LOCAL void Free_Ctrl (struct GMT_CTRL *GMT, struct X2SYS_CROSS_CTRL *C) {	/*
 	gmt_M_free (GMT, C);
 }
 
-GMT_LOCAL int usage (struct GMTAPI_CTRL *API, int level) {
+static int usage (struct GMTAPI_CTRL *API, int level) {
 	const char *name = gmt_show_name_and_purpose (API, THIS_MODULE_LIB, THIS_MODULE_CLASSIC_NAME, THIS_MODULE_PURPOSE);
 	if (level == GMT_MODULE_PURPOSE) return (GMT_NOERROR);
 	GMT_Message (API, GMT_TIME_NONE, "usage: %s <files> -T<TAG> [-A<combi.lis>] [-C[<fname>]] [-D[S|N]] [-Il|a|c] [-Qe|i]\n", name);
@@ -151,7 +151,7 @@ GMT_LOCAL int usage (struct GMTAPI_CTRL *API, int level) {
 	return (GMT_MODULE_USAGE);
 }
 
-GMT_LOCAL int parse (struct GMT_CTRL *GMT, struct X2SYS_CROSS_CTRL *Ctrl, struct GMT_OPTION *options) {
+static int parse (struct GMT_CTRL *GMT, struct X2SYS_CROSS_CTRL *Ctrl, struct GMT_OPTION *options) {
 
 	/* This parses the options provided to grdcut and sets parameters in CTRL.
 	 * Any GMT common options will override values set previously by other commands.
@@ -279,7 +279,7 @@ GMT_LOCAL int parse (struct GMT_CTRL *GMT, struct X2SYS_CROSS_CTRL *Ctrl, struct
 	return (n_errors ? GMT_PARSE_ERROR : GMT_NOERROR);
 }
 
-GMT_LOCAL int x2syscross_combo_ok (char *name_1, char *name_2, struct PAIR *pair, uint64_t n_pairs) {
+GMT_LOCAL int x2syscross_combo_ok (char *name_1, char *name_2, struct X2SYS_CROSS_PAIR *pair, uint64_t n_pairs) {
 	uint64_t i;
 
 	/* Return true if this particular combination is found in the list of pairs */
@@ -291,10 +291,10 @@ GMT_LOCAL int x2syscross_combo_ok (char *name_1, char *name_2, struct PAIR *pair
 	return (false);
 }
 
-GMT_LOCAL void x2syscross_free_pairs (struct GMT_CTRL *GMT, struct PAIR **pair, uint64_t n_pairs) {
+GMT_LOCAL void x2syscross_free_pairs (struct GMT_CTRL *GMT, struct X2SYS_CROSS_PAIR **pair, uint64_t n_pairs) {
 	/* Free the array of pairs */
 	uint64_t k;
-	struct PAIR *P = *pair;
+	struct X2SYS_CROSS_PAIR *P = *pair;
 	for (k = 0; k < n_pairs; k++) {
 		gmt_M_str_free (P[k].id1);
 		gmt_M_str_free (P[k].id2);
@@ -403,7 +403,7 @@ EXTERN_MSC int GMT_x2sys_cross (void *V_API, int mode, void *args) {
 	struct GMT_XOVER XC;				/* Structure with resulting crossovers */
 	struct X2SYS_FILE_INFO data_set[2];		/* File information */
 	struct X2SYS_BIX Bix;
-	struct PAIR *pair = NULL;			/* Used with -Akombinations.lis option */
+	struct X2SYS_CROSS_PAIR *pair = NULL;			/* Used with -Akombinations.lis option */
 	FILE *fp = NULL, *fpC = NULL;
 	struct GMT_RECORD *Out = NULL;
 	struct X2SYS_CROSS_CTRL *Ctrl = NULL;
@@ -484,7 +484,7 @@ EXTERN_MSC int GMT_x2sys_cross (void *V_API, int mode, void *args) {
 		}
 
 		n_alloc = add_chunk = GMT_CHUNK;
-		pair = gmt_M_memory (GMT, NULL, n_alloc, struct PAIR);
+		pair = gmt_M_memory (GMT, NULL, n_alloc, struct X2SYS_CROSS_PAIR);
 
 		while (fgets (line, GMT_BUFSIZ, fp)) {
 
@@ -503,8 +503,8 @@ EXTERN_MSC int GMT_x2sys_cross (void *V_API, int mode, void *args) {
 				size_t old_n_alloc = n_alloc;
 				add_chunk *= 2;
 				n_alloc += add_chunk;
-				pair = gmt_M_memory (GMT, pair, n_alloc, struct PAIR);
-				gmt_M_memset (&(pair[old_n_alloc]), n_alloc - old_n_alloc, struct PAIR);
+				pair = gmt_M_memory (GMT, pair, n_alloc, struct X2SYS_CROSS_PAIR);
+				gmt_M_memset (&(pair[old_n_alloc]), n_alloc - old_n_alloc, struct X2SYS_CROSS_PAIR);
 			}
 		}
 		fclose (fp);
@@ -513,7 +513,7 @@ EXTERN_MSC int GMT_x2sys_cross (void *V_API, int mode, void *args) {
 			GMT_Report (API, GMT_MSG_ERROR, "No combinations found in file %s!\n", Ctrl->A.file);
 			Crashout (GMT_RUNTIME_ERROR);
 		}
-		if (n_pairs < n_alloc) pair = gmt_M_memory (GMT, pair, n_pairs, struct PAIR);
+		if (n_pairs < n_alloc) pair = gmt_M_memory (GMT, pair, n_pairs, struct X2SYS_CROSS_PAIR);
 		GMT_Report (API, GMT_MSG_INFORMATION, "%" PRIu64 "\n", n_pairs);
 	}
 

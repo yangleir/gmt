@@ -113,7 +113,7 @@ struct GMT_QUADTREE {
 	struct GMT_QUADTREE *next[4];
 };
 
-GMT_LOCAL void *New_Ctrl (struct GMT_CTRL *GMT) {	/* Allocate and initialize a new control structure */
+static void *New_Ctrl (struct GMT_CTRL *GMT) {	/* Allocate and initialize a new control structure */
 	struct GRD2KML_CTRL *C;
 
 	C = gmt_M_memory (GMT, NULL, 1, struct GRD2KML_CTRL);
@@ -127,7 +127,7 @@ GMT_LOCAL void *New_Ctrl (struct GMT_CTRL *GMT) {	/* Allocate and initialize a n
 	return (C);
 }
 
-GMT_LOCAL void Free_Ctrl (struct GMT_CTRL *GMT, struct GRD2KML_CTRL *C) {	/* Deallocate control structure */
+static void Free_Ctrl (struct GMT_CTRL *GMT, struct GRD2KML_CTRL *C) {	/* Deallocate control structure */
 	if (!C) return;
 	gmt_M_str_free (C->In.file);
 	gmt_M_str_free (C->C.file);
@@ -140,7 +140,7 @@ GMT_LOCAL void Free_Ctrl (struct GMT_CTRL *GMT, struct GRD2KML_CTRL *C) {	/* Dea
 	gmt_M_free (GMT, C);
 }
 
-GMT_LOCAL int usage (struct GMTAPI_CTRL *API, int level) {
+static int usage (struct GMTAPI_CTRL *API, int level) {
 	const char *name = gmt_show_name_and_purpose (API, THIS_MODULE_LIB, THIS_MODULE_CLASSIC_NAME, THIS_MODULE_PURPOSE);
 	if (level == GMT_MODULE_PURPOSE) return (GMT_NOERROR);
 	GMT_Message (API, GMT_TIME_NONE, "usage: %s <grid> -N<name> [-Aa|g|s[<altitude>]] [-C<cpt>] [-E<url>] [-F<filter>] [-H<factor>] [-I[<intensgrid>|<value>|<modifiers>]]\n", name);
@@ -187,7 +187,7 @@ GMT_LOCAL int usage (struct GMTAPI_CTRL *API, int level) {
 	return (GMT_MODULE_USAGE);
 }
 
-GMT_LOCAL int parse (struct GMT_CTRL *GMT, struct GRD2KML_CTRL *Ctrl, struct GMT_OPTION *options) {
+static int parse (struct GMT_CTRL *GMT, struct GRD2KML_CTRL *Ctrl, struct GMT_OPTION *options) {
 
 	/* This parses the options provided to grdcut and sets parameters in CTRL.
 	 * Any GMT common options will override values set previously by other commands.
@@ -382,7 +382,7 @@ GMT_LOCAL void grd2kml_halve_dimensions (double *inc, double *step) {
 
 GMT_LOCAL unsigned int grd2kml_max_level (struct GMT_CTRL *GMT, bool global, struct GMT_GRID_HEADER *H, unsigned int size, unsigned int extra) {
 	unsigned int level = 0;
-	if (global) {;
+	if (global) {
 		unsigned int n = 1, f = 1, go = 1;
 		double inc = 1.0, step = 360, range;
 		GMT_Report (GMT->parent, GMT_MSG_NOTICE, "Level = %2.2d tile size = %gd grid inc = %gm n_tiles = %d\n", level, step, 60*inc, n);
@@ -453,7 +453,7 @@ int grd2kml_coarsen_grid (struct GMT_CTRL *GMT, unsigned int level, char filter,
 			return (GMT_RUNTIME_ERROR);
 	}
 	else {	/* Filter the grid */
-		unsigned int k;
+		unsigned int k = 0;
 		char *kind[4] = {"Boxcar", "Cosine-taper", "Gaussian", "Median"};
 		switch (filter) {
 			case 'b':	k = 0; break;
@@ -623,10 +623,9 @@ EXTERN_MSC int GMT_grd2kml (void *V_API, int mode, void *args) {
 		inc = 1.0;
 	}
 	else {	/* Make a square Ctrl->size region centered on the input grid center */
-		double range, tile_size = Ctrl->L.size * G->header->inc[GMT_X];	/* Dimension of highest-resolution tile in degrees */
+		double tile_size = Ctrl->L.size * G->header->inc[GMT_X];	/* Dimension of highest-resolution tile in degrees */
 		unsigned int width;
 
-		range = MAX (G->header->wesn[XHI] - G->header->wesn[XLO], G->header->wesn[YHI] - G->header->wesn[YLO]);	/* Largest data dimension in degrees */
 		width = pow (2.0, max_level);	/* Radix-2 number of the smallest tiles in both x and y */
 		step = width * tile_size;		/* Square dimension of extended grid in degrees */
 		col = G->header->n_columns / 2;	row = G->header->n_rows / 2;	/* Half-way point in grid */

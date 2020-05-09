@@ -50,65 +50,65 @@
 #define PLOT_OFFSET	2
 
 struct PSSEGY_CTRL {
-	struct In {	/* -In */
+	struct PSSEGY_In {	/* -In */
 		bool active;
 		char *file;
 	} In;
-	struct A {	/* -A */
+	struct PSSEGY_A {	/* -A */
 		bool active;
 	} A;
-	struct C {	/* -C<cpt> */
+	struct PSSEGY_C {	/* -C<cpt> */
 		bool active;
 		double value;
 	} C;
-	struct D {	/* -D */
+	struct PSSEGY_D {	/* -D */
 		bool active;
 		double value;
 	} D;
-	struct E {	/* -E */
+	struct PSSEGY_E {	/* -E */
 		bool active;
 		double value;
 	} E;
-	struct F {	/* -F<fill> */
+	struct PSSEGY_F {	/* -F<fill> */
 		bool active;
 		double rgb[4];
 	} F;
-	struct I {	/* -I */
+	struct PSSEGY_I {	/* -I */
 		bool active;
 	} I;
-	struct L {	/* -L */
+	struct PSSEGY_L {	/* -L */
 		bool active;
 		uint32_t value;
 	} L;
-	struct M {	/* -M */
+	struct PSSEGY_M {	/* -M */
 		bool active;
 		uint32_t value;
 	} M;
-	struct N {	/* -N */
+	struct PSSEGY_N {	/* -N */
 		bool active;
 	} N;
-	struct Q {	/* -Qb|i|u|x|y */
+	struct PSSEGY_Q {	/* -Qb|i|u|x|y */
 		bool active[5];
 		double value[5];
 	} Q;
-	struct S {	/* -S */
+	struct PSSEGY_S {	/* -S */
 		bool active;
 		unsigned int mode;
 		int value;
 	} S;
-	struct T {	/* -T */
+	struct PSSEGY_T {	/* -T */
 		bool active;
 		char *file;
 	} T;
-	struct W {	/* -W */
+	struct PSSEGY_W {	/* -W */
 		bool active;
 	} W;
-	struct Z {	/* -Z */
+	struct PSSEGY_Z {	/* -Z */
 		bool active;
 	} Z;
 };
 
-GMT_LOCAL void *New_Ctrl (struct GMT_CTRL *GMT) {	/* Allocate and initialize a new control structure */
+static void *New_Ctrl (struct GMT_CTRL *GMT) {	/* Allocate and initialize a new control structure */
 	struct PSSEGY_CTRL *C;
 
 	C = gmt_M_memory (GMT, NULL, 1, struct PSSEGY_CTRL);
@@ -122,14 +122,14 @@ GMT_LOCAL void *New_Ctrl (struct GMT_CTRL *GMT) {	/* Allocate and initialize a n
 	return (C);
 }
 
-GMT_LOCAL void Free_Ctrl (struct GMT_CTRL *GMT, struct PSSEGY_CTRL *C) {	/* Deallocate control structure */
+static void Free_Ctrl (struct GMT_CTRL *GMT, struct PSSEGY_CTRL *C) {	/* Deallocate control structure */
 	if (!C) return;
 	gmt_M_str_free (C->In.file);
 	gmt_M_str_free (C->T.file);
 	gmt_M_free (GMT, C);
 }
 
-GMT_LOCAL int usage (struct GMTAPI_CTRL *API, int level) {
+static int usage (struct GMTAPI_CTRL *API, int level) {
 	const char *name = gmt_show_name_and_purpose (API, THIS_MODULE_LIB, THIS_MODULE_CLASSIC_NAME, THIS_MODULE_PURPOSE);
 	if (level == GMT_MODULE_PURPOSE) return (GMT_NOERROR);
 	GMT_Message (API, GMT_TIME_NONE, "usage: %s [<segyfile>] -D<dev> -F<color> | -W %s\n", name, GMT_Jx_OPT);
@@ -174,7 +174,7 @@ GMT_LOCAL int usage (struct GMTAPI_CTRL *API, int level) {
 	return (GMT_MODULE_USAGE);
 }
 
-GMT_LOCAL int parse (struct GMT_CTRL *GMT, struct PSSEGY_CTRL *Ctrl, struct GMT_OPTION *options) {
+static int parse (struct GMT_CTRL *GMT, struct PSSEGY_CTRL *Ctrl, struct GMT_OPTION *options) {
 	/* This parses the options provided to pssegy and sets parameters in Ctrl.
 	 * Note Ctrl has already been initialized and non-zero default values set.
 	 * Any GMT common options will override values set previously by other commands.

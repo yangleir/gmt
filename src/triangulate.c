@@ -42,48 +42,48 @@
 #define THIS_MODULE_OPTIONS "-:>JRVbdefhiqrs" GMT_OPT("Hm")
 
 struct TRIANGULATE_CTRL {
-	struct Out {	/* -> */
+	struct TRIANGULATE_Out {	/* -> */
 		bool active;
 		char *file;
 	} Out;
-	struct C {	/* -C<input_slope_grid> */
+	struct TRIANGULATE_C {	/* -C<input_slope_grid> */
 		bool active;
 		char *file;
 	} C;
-	struct D {	/* -Dx|y */
+	struct TRIANGULATE_D {	/* -Dx|y */
 		bool active;
 		unsigned int dir;
 	} D;
-	struct E {	/* -E<value> */
+	struct TRIANGULATE_E {	/* -E<value> */
 		bool active;
 		double value;
 	} E;
-	struct F {	/* -F<pregrid>[+d] */
+	struct TRIANGULATE_F {	/* -F<pregrid>[+d] */
 		bool active;
 		char *file;
 		unsigned int mode;
 	} F;
-	struct G {	/* -G<output_grdfile> */
+	struct TRIANGULATE_G {	/* -G<output_grdfile> */
 		bool active;
 		char *file;
 	} G;
-	struct M {	/* -M */
+	struct TRIANGULATE_M {	/* -M */
 		bool active;
 	} M;
-	struct N {	/* -N */
+	struct TRIANGULATE_N {	/* -N */
 		bool active;
 	} N;
-	struct Q {	/* -Q[n] */
+	struct TRIANGULATE_Q {	/* -Q[n] */
 		bool active;
 		unsigned int mode;
 	} Q;
-	struct S {	/* -S */
+	struct TRIANGULATE_S {	/* -S */
 		bool active;
 	} S;
-	struct T {	/* -T */
+	struct TRIANGULATE_T {	/* -T */
 		bool active;
 	} T;
-	struct Z {	/* -Z */
+	struct TRIANGULATE_Z {	/* -Z */
 		bool active;
 	} Z;
 };
@@ -110,7 +110,7 @@ GMT_LOCAL int triangulate_compare_edge (const void *p1, const void *p2) {
 	return (0);
 }
 
-GMT_LOCAL void *New_Ctrl (struct GMT_CTRL *GMT) {	/* Allocate and initialize a new control structure */
+static void *New_Ctrl (struct GMT_CTRL *GMT) {	/* Allocate and initialize a new control structure */
 	struct TRIANGULATE_CTRL *C = NULL;
 
 	C = gmt_M_memory (GMT, NULL, 1, struct TRIANGULATE_CTRL);
@@ -120,7 +120,7 @@ GMT_LOCAL void *New_Ctrl (struct GMT_CTRL *GMT) {	/* Allocate and initialize a n
 	return (C);
 }
 
-GMT_LOCAL void Free_Ctrl (struct GMT_CTRL *GMT, struct TRIANGULATE_CTRL *C) {	/* Deallocate control structure */
+static void Free_Ctrl (struct GMT_CTRL *GMT, struct TRIANGULATE_CTRL *C) {	/* Deallocate control structure */
 	if (!C) return;
 	gmt_M_str_free (C->C.file);
 	gmt_M_str_free (C->F.file);
@@ -128,7 +128,7 @@ GMT_LOCAL void Free_Ctrl (struct GMT_CTRL *GMT, struct TRIANGULATE_CTRL *C) {	/*
 	gmt_M_free (GMT, C);
 }
 
-GMT_LOCAL int usage (struct GMTAPI_CTRL *API, int level) {
+static int usage (struct GMTAPI_CTRL *API, int level) {
 	const char *name = gmt_show_name_and_purpose (API, THIS_MODULE_LIB, THIS_MODULE_CLASSIC_NAME, THIS_MODULE_PURPOSE);
 	if (level == GMT_MODULE_PURPOSE) return (GMT_NOERROR);
 	GMT_Message (API, GMT_TIME_NONE, "usage: %s [<table>] [-Dx|y] [-C<slopegrid>] [-E<empty>] [-G<outgrid>]\n", name);
@@ -175,7 +175,7 @@ GMT_LOCAL int usage (struct GMTAPI_CTRL *API, int level) {
 	return (GMT_MODULE_USAGE);
 }
 
-GMT_LOCAL int parse (struct GMT_CTRL *GMT, struct TRIANGULATE_CTRL *Ctrl, struct GMT_OPTION *options) {
+static int parse (struct GMT_CTRL *GMT, struct TRIANGULATE_CTRL *Ctrl, struct GMT_OPTION *options) {
 	/* This parses the options provided to triangulate and sets parameters in CTRL.
 	 * Any GMT common options will override values set previously by other commands.
 	 * It also replaces any file names specified as input or output with the data ID
@@ -444,6 +444,11 @@ EXTERN_MSC int GMT_triangulate (void *V_API, int mode, void *args) {
 			else if (gmt_M_rec_is_eof (GMT)) 		/* Reached end of file */
 				break;
 			continue;	/* Go back and read the next record */
+		}
+
+		if (In->data == NULL) {
+			gmt_quit_bad_record (API, In);
+			Return (API->error);
 		}
 
 		/* Data record to process */

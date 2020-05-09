@@ -29,64 +29,69 @@
 #define THIS_MODULE_LIB		"core"
 #define THIS_MODULE_PURPOSE	"Calculate and plot histograms"
 #define THIS_MODULE_KEYS	"<D{,CC(,>X},>D),>DI@<D{,ID)"
-#define THIS_MODULE_NEEDS	"J"
+#define THIS_MODULE_NEEDS	"JR"
 #define THIS_MODULE_OPTIONS "->BJKOPRUVXYbdefhipqstxy" GMT_OPT("Ec")
 
+/* Note: The NEEDS must be JR.  Although pshistogram can create a region from data, it
+ * does so indirectly by building the histogram and setting the ymin/ymax that way, NOT by
+ * reading y data (which is what a NEEDS of d or r would do).
+ */
+
 struct PSHISTOGRAM_CTRL {
-	struct Out {	/* -> */
+	struct PSHISTOGRAM_Out {	/* -> */
 		bool active;
 		char *file;
 	} Out;
-	struct A {	/* -A */
+	struct PSHISTOGRAM_A {	/* -A */
 		bool active;
 	} A;
-	struct C {	/* -C<cpt> */
+	struct PSHISTOGRAM_C {	/* -C<cpt> */
 		bool active;
 		char *file;
 	} C;
-	struct D {	/* -D[+r][+f<font>][+o<off>][+b] */
+	struct PSHISTOGRAM_D {	/* -D[+r][+f<font>][+o<off>][+b] */
 		bool active;
 		unsigned int mode;	/* 0 for horizontal, 1 for vertical */
 		unsigned int just;	/* 0 for top of bar, 1 for below */
 		struct GMT_FONT font;
 		double offset;
 	} D;
-	struct F {	/* -F */
+	struct PSHISTOGRAM_F {	/* -F */
 		bool active;
 	} F;
-	struct G {	/* -Gfill */
+	struct PSHISTOGRAM_G {	/* -Gfill */
 		bool active;
 		struct GMT_FILL fill;
 	} G;
-	struct I {	/* -I[o] */
+	struct PSHISTOGRAM_I {	/* -I[o] */
 		bool active;
 		unsigned int mode;
 	} I;
-	struct L {	/* -Ll|h|b */
+	struct PSHISTOGRAM_L {	/* -Ll|h|b */
 		bool active;
 		unsigned int mode;
 	} L;
-	struct N {	/* -N[<kind>]+p<pen>, <kind = 0,1,2 */
+	struct PSHISTOGRAM_N {	/* -N[<kind>]+p<pen>, <kind = 0,1,2 */
 		bool active;
 		bool selected[3];
 		struct GMT_PEN pen[3];
 	} N;
-	struct Q {	/* -Q[r] */
+	struct PSHISTOGRAM_Q {	/* -Q[r] */
 		bool active;
 		int mode;
 	} Q;
-	struct S {	/* -S */
+	struct PSHISTOGRAM_S {	/* -S */
 		bool active;
 	} S;
-	struct T {	/* -T<tmin/tmax/tinc>[+n] | -Tfile|list  */
+	struct PSHISTOGRAM_T {	/* -T<tmin/tmax/tinc>[+n] | -Tfile|list  */
 		bool active;
 		struct GMT_ARRAY T;
 	} T;
-	struct W {	/* -W<pen> */
+	struct PSHISTOGRAM_W {	/* -W<pen> */
 		bool active;
 		struct GMT_PEN pen;
 	} W;
-	struct Z {	/* -Z<type>[+w] */
+	struct PSHISTOGRAM_Z {	/* -Z<type>[+w] */
 		bool active;
 		bool weights;
 		unsigned int mode;
@@ -125,7 +130,7 @@ struct PSHISTOGRAM_INFO {	/* Control structure for pshistogram */
 	struct GMT_ARRAY *T;
 };
 
-GMT_LOCAL void *New_Ctrl (struct GMT_CTRL *GMT) {	/* Allocate and initialize a new control structure */
+static void *New_Ctrl (struct GMT_CTRL *GMT) {	/* Allocate and initialize a new control structure */
 	unsigned int k;
 	struct PSHISTOGRAM_CTRL *C = NULL;
 
@@ -141,7 +146,7 @@ GMT_LOCAL void *New_Ctrl (struct GMT_CTRL *GMT) {	/* Allocate and initialize a n
 	return (C);
 }
 
-GMT_LOCAL void Free_Ctrl (struct GMT_CTRL *GMT, struct PSHISTOGRAM_CTRL *C) {	/* Deallocate control structure */
+static void Free_Ctrl (struct GMT_CTRL *GMT, struct PSHISTOGRAM_CTRL *C) {	/* Deallocate control structure */
 	if (!C) return;
 	gmt_M_str_free (C->Out.file);
 	gmt_M_str_free (C->C.file);
@@ -247,7 +252,7 @@ GMT_LOCAL int pshistogram_fill_boxes (struct GMT_CTRL *GMT, struct PSHISTOGRAM_I
 	return (0);
 }
 
-GMT_LOCAL double pshistogram_plot_boxes (struct GMT_CTRL *GMT, struct PSL_CTRL *PSL, struct GMT_PALETTE *P, struct PSHISTOGRAM_INFO *F, bool stairs, bool flip_to_y, bool draw_outline, struct GMT_PEN *pen, struct GMT_FILL *fill, bool cpt, struct D *D) {
+GMT_LOCAL double pshistogram_plot_boxes (struct GMT_CTRL *GMT, struct PSL_CTRL *PSL, struct GMT_PALETTE *P, struct PSHISTOGRAM_INFO *F, bool stairs, bool flip_to_y, bool draw_outline, struct GMT_PEN *pen, struct GMT_FILL *fill, bool cpt, struct PSHISTOGRAM_D *D) {
 	int i, index, fmode = 0, label_justify;
 	uint64_t ibox;
 	char label[GMT_LEN64] = {""};
@@ -461,7 +466,7 @@ GMT_LOCAL bool pshistogram_new_syntax (struct GMT_CTRL *GMT, char *L, char *T, c
 	}
 }
 
-GMT_LOCAL int usage (struct GMTAPI_CTRL *API, int level) {
+static int usage (struct GMTAPI_CTRL *API, int level) {
 	const char *name = gmt_show_name_and_purpose (API, THIS_MODULE_LIB, THIS_MODULE_CLASSIC_NAME, THIS_MODULE_PURPOSE);
 	if (level == GMT_MODULE_PURPOSE) return (GMT_NOERROR);
 	GMT_Message (API, GMT_TIME_NONE, "usage: %s [<table>] %s -T[<min>/<max>/]<inc>[+n] [-A] [%s] [-C<cpt>] [-D[+b][+f<font>][+o<off>][+r]]\n", name, GMT_Jx_OPT, GMT_B_OPT);
@@ -520,7 +525,7 @@ GMT_LOCAL int usage (struct GMTAPI_CTRL *API, int level) {
 	return (GMT_MODULE_USAGE);
 }
 
-GMT_LOCAL int parse (struct GMT_CTRL *GMT, struct PSHISTOGRAM_CTRL *Ctrl, struct GMT_OPTION *options) {
+static int parse (struct GMT_CTRL *GMT, struct PSHISTOGRAM_CTRL *Ctrl, struct GMT_OPTION *options) {
 	/* This parses the options provided to pshistogram and sets parameters in Ctrl.
 	 * Note Ctrl has already been initialized and non-zero default values set.
 	 * Any GMT common options will override values set previously by other commands.
@@ -829,6 +834,11 @@ EXTERN_MSC int GMT_pshistogram (void *V_API, int mode, void *args) {
 			else if (gmt_M_rec_is_eof (GMT)) 		/* Reached end of file */
 				break;
 			continue;	/* Go back and read the next record */
+		}
+
+		if (In->data == NULL) {
+			gmt_quit_bad_record (API, In);
+			Return (API->error);
 		}
 
 		/* Data record to process */

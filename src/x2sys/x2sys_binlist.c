@@ -42,23 +42,23 @@
 /* Control structure for x2sys_binlist */
 
 struct X2SYS_BINLIST_CTRL {
-	struct D {	/* -D */
+	struct X2SYS_BINLIST_D {	/* -D */
 		bool active;
 	} D;
-	struct E {	/* -E */
+	struct X2SYS_BINLIST_E {	/* -E */
 		bool active;
 	} E;
-	struct T {	/* -T */
+	struct X2SYS_BINLIST_T {	/* -T */
 		bool active;
 		char *TAG;
 	} T;
 };
 
-struct BINCROSS {
+struct X2SYS_BINLIST_BINCROSS {
 	double x, y, d;
 };
 
-GMT_LOCAL void *New_Ctrl (struct GMT_CTRL *GMT) {	/* Allocate and initialize a new control structure */
+static void *New_Ctrl (struct GMT_CTRL *GMT) {	/* Allocate and initialize a new control structure */
 	struct X2SYS_BINLIST_CTRL *C;
 
 	C = gmt_M_memory (GMT, NULL, 1, struct X2SYS_BINLIST_CTRL);
@@ -68,13 +68,13 @@ GMT_LOCAL void *New_Ctrl (struct GMT_CTRL *GMT) {	/* Allocate and initialize a n
 	return (C);
 }
 
-GMT_LOCAL void Free_Ctrl (struct GMT_CTRL *GMT, struct X2SYS_BINLIST_CTRL *C) {	/* Deallocate control structure */
+static void Free_Ctrl (struct GMT_CTRL *GMT, struct X2SYS_BINLIST_CTRL *C) {	/* Deallocate control structure */
 	if (!C) return;
 	gmt_M_str_free (C->T.TAG);
 	gmt_M_free (GMT, C);
 }
 
-GMT_LOCAL int usage (struct GMTAPI_CTRL *API, int level) {
+static int usage (struct GMTAPI_CTRL *API, int level) {
 	const char *name = gmt_show_name_and_purpose (API, THIS_MODULE_LIB, THIS_MODULE_CLASSIC_NAME, THIS_MODULE_PURPOSE);
 	if (level == GMT_MODULE_PURPOSE) return (GMT_NOERROR);
 	GMT_Message (API, GMT_TIME_NONE, "usage: %s <files> -T<TAG> [-D] [-E] [%s] [%s]\n\n", name, GMT_V_OPT, GMT_PAR_OPT);
@@ -91,7 +91,7 @@ GMT_LOCAL int usage (struct GMTAPI_CTRL *API, int level) {
 	return (GMT_MODULE_USAGE);
 }
 
-GMT_LOCAL int parse (struct GMT_CTRL *GMT, struct X2SYS_BINLIST_CTRL *Ctrl, struct GMT_OPTION *options) {
+static int parse (struct GMT_CTRL *GMT, struct X2SYS_BINLIST_CTRL *Ctrl, struct GMT_OPTION *options) {
 
 	/* This parses the options provided to grdcut and sets parameters in CTRL.
 	 * Any GMT common options will override values set previously by other commands.
@@ -163,7 +163,7 @@ GMT_LOCAL unsigned int x2sysbinlist_get_data_flag (double *data[], uint64_t j, s
 }
 
 GMT_LOCAL int x2sysbinlist_comp_bincross (const void *p1, const void *p2) {
-	const struct BINCROSS *a = p1, *b = p2;
+	const struct X2SYS_BINLIST_BINCROSS *a = p1, *b = p2;
 
 	if (a->d < b->d) return (-1);
 	if (a->d > b->d) return (+1);
@@ -196,7 +196,7 @@ EXTERN_MSC int GMT_x2sys_binlist (void *V_API, int mode, void *args) {
 	struct X2SYS_INFO *s = NULL;
 	struct X2SYS_FILE_INFO p;		/* File information */
 	struct X2SYS_BIX B;
-	struct BINCROSS *X = NULL;
+	struct X2SYS_BINLIST_BINCROSS *X = NULL;
 	struct X2SYS_BINLIST_CTRL *Ctrl = NULL;
 	struct GMT_CTRL *GMT = NULL, *GMT_cpy = NULL;
 	struct GMT_OPTION *options = NULL;
@@ -281,7 +281,7 @@ EXTERN_MSC int GMT_x2sys_binlist (void *V_API, int mode, void *args) {
 	jump_180 = irint (180.0 / B.inc[GMT_X]);
 	jump_360 = irint (360.0 / B.inc[GMT_X]);
 
-	X = gmt_M_memory (GMT, NULL, nx_alloc, struct BINCROSS);
+	X = gmt_M_memory (GMT, NULL, nx_alloc, struct X2SYS_BINLIST_BINCROSS);
 
 	if (Ctrl->D.active) {
 		gmt_init_distaz (GMT, s->unit[X2SYS_DIST_SELECTION][0], s->dist_flag, GMT_MAP_DIST);
@@ -425,7 +425,7 @@ EXTERN_MSC int GMT_x2sys_binlist (void *V_API, int mode, void *args) {
 					nx++;
 					if (nx == nx_alloc) {
 						nx_alloc <<= 1;
-						X = gmt_M_memory (GMT, X, nx_alloc, struct BINCROSS);
+						X = gmt_M_memory (GMT, X, nx_alloc, struct X2SYS_BINLIST_BINCROSS);
 					}
 				}
 				for (bcol = start_col; bcol <= end_col; bcol++) {	/* If we go in here we think dx is non-zero (we do a last-ditch dx check just in case) */
@@ -442,13 +442,13 @@ EXTERN_MSC int GMT_x2sys_binlist (void *V_API, int mode, void *args) {
 					nx++;
 					if (nx == nx_alloc) {
 						nx_alloc <<= 1;
-						X = gmt_M_memory (GMT, X, nx_alloc, struct BINCROSS);
+						X = gmt_M_memory (GMT, X, nx_alloc, struct X2SYS_BINLIST_BINCROSS);
 					}
 				}
 
 				/* Here we have 1 or more intersections */
 
-				qsort (X, nx, sizeof (struct BINCROSS), x2sysbinlist_comp_bincross);
+				qsort (X, nx, sizeof (struct X2SYS_BINLIST_BINCROSS), x2sysbinlist_comp_bincross);
 
 				for (curr_x_pt = 1, prev_x_pt = 0; curr_x_pt < nx; curr_x_pt++, prev_x_pt++) {	/* Process the intervals, getting mid-points and using that to get bin */
 					dx = X[curr_x_pt].x - X[prev_x_pt].x;

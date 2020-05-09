@@ -44,26 +44,26 @@
 
 struct NEARNEIGHBOR_CTRL {	/* All control options for this program (except common args) */
 	/* active is true if the option has been activated */
-	struct E {	/* -E<empty> */
+	struct NEARNEIGHBOR_E {	/* -E<empty> */
 		bool active;
 		double value;
 	} E;
-	struct G {	/* -G<grdfile> */
+	struct NEARNEIGHBOR_G {	/* -G<grdfile> */
 		bool active;
 		char *file;
 	} G;
-	struct N {	/* -N<sectors>[+m<min_sectors>] | -Nn */
+	struct NEARNEIGHBOR_N {	/* -N<sectors>[+m<min_sectors>] | -Nn */
 		bool active;
 		unsigned int sectors, min_sectors;
 		unsigned int mode;
 	} N;
-	struct S {	/* -S[-|=|+]<radius>[d|e|f|k|m|M|n] */
+	struct NEARNEIGHBOR_S {	/* -S[-|=|+]<radius>[d|e|f|k|m|M|n] */
 		bool active;
 		int mode;	/* May be negative */
 		double radius;
 		char unit;
 	} S;
-	struct W {	/* -W */
+	struct NEARNEIGHBOR_W {	/* -W */
 		bool active;
 	} W;
 };
@@ -77,7 +77,7 @@ struct NEARNEIGHBOR_POINT {	/* Structure with input data constraints */
 	gmt_grdfloat x, y, z, w;
 };
 
-GMT_LOCAL void *New_Ctrl (struct GMT_CTRL *GMT) {	/* Allocate and initialize a new control structure */
+static void *New_Ctrl (struct GMT_CTRL *GMT) {	/* Allocate and initialize a new control structure */
 	struct NEARNEIGHBOR_CTRL *C;
 
 	C = gmt_M_memory (GMT, NULL, 1U, struct NEARNEIGHBOR_CTRL);
@@ -87,7 +87,7 @@ GMT_LOCAL void *New_Ctrl (struct GMT_CTRL *GMT) {	/* Allocate and initialize a n
 	return (C);
 }
 
-GMT_LOCAL void Free_Ctrl (struct GMT_CTRL *GMT, struct NEARNEIGHBOR_CTRL *C) {	/* Deallocate control structure */
+static void Free_Ctrl (struct GMT_CTRL *GMT, struct NEARNEIGHBOR_CTRL *C) {	/* Deallocate control structure */
 	if (!C) return;
 	gmt_M_str_free (C->G.file);
 	gmt_M_free (GMT, C);
@@ -122,7 +122,7 @@ GMT_LOCAL void nearneighbor_free_node (struct GMT_CTRL *GMT, struct NEARNEIGHBOR
 	gmt_M_free (GMT, node);
 }
 
-GMT_LOCAL int usage (struct GMTAPI_CTRL *API, int level) {
+static int usage (struct GMTAPI_CTRL *API, int level) {
 	const char *name = gmt_show_name_and_purpose (API, THIS_MODULE_LIB, THIS_MODULE_CLASSIC_NAME, THIS_MODULE_PURPOSE);
 	if (level == GMT_MODULE_PURPOSE) return (GMT_NOERROR);
 	GMT_Message (API, GMT_TIME_NONE, "usage: %s [<table>] -G<outgrid> %s\n", name, GMT_I_OPT);
@@ -161,7 +161,7 @@ GMT_LOCAL int usage (struct GMTAPI_CTRL *API, int level) {
 	return (GMT_MODULE_USAGE);
 }
 
-GMT_LOCAL int parse (struct GMT_CTRL *GMT, struct NEARNEIGHBOR_CTRL *Ctrl, struct GMT_OPTION *options) {
+static int parse (struct GMT_CTRL *GMT, struct NEARNEIGHBOR_CTRL *Ctrl, struct GMT_OPTION *options) {
 	/* This parses the options provided to nearneighbor and sets parameters in CTRL.
 	 * Any GMT common options will override values set previously by other commands.
 	 * It also replaces any file names specified as input or output with the data ID
@@ -400,6 +400,11 @@ EXTERN_MSC int GMT_nearneighbor (void *V_API, int mode, void *args) {
 				break;
 			continue;	/* Go back and read the next record */
 		}
+		if (In->data == NULL) {
+			gmt_quit_bad_record (API, In);
+			Return (API->error);
+		}
+
 		in = In->data;	/* Only need to process numerical part here */
 
 		if (gmt_M_is_dnan (in[GMT_Z])) continue;					/* Skip if z = NaN */

@@ -37,44 +37,44 @@
 
 struct GRDROTATER_CTRL {	/* All control options for this program (except common args) */
 	/* active is true if the option has been activated */
-	struct In {
+	struct GRDROTATER_In {
 		bool active;
 		char *file;
 	} In;
-	struct A {	/* -Aw/e/s/n */
+	struct GRDROTATER_A {	/* -Aw/e/s/n */
 		bool active;
 		double wesn[4];
 	} A;
-	struct D {	/* -Drotpolfile or -Dtemplate */
+	struct GRDROTATER_D {	/* -Drotpolfile or -Dtemplate */
 		bool active;
 		char *file;
 	} D;
-	struct E {	/* -E[+]rotfile, -E[+]<ID1>-<ID2>, or -E<lon/lat/angle> */
+	struct GRDROTATER_E {	/* -E[+]rotfile, -E[+]<ID1>-<ID2>, or -E<lon/lat/angle> */
 		bool active;
 		struct SPOTTER_ROT rot;
 	} E;
-	struct F {	/* -Fpolfile */
+	struct GRDROTATER_F {	/* -Fpolfile */
 		bool active;
 		char *file;
 	} F;
-	struct G {	/* -Goutfile or -Gtemplate*/
+	struct GRDROTATER_G {	/* -Goutfile or -Gtemplate*/
 		bool active;
 		char *file;
 	} G;
-	struct N {	/* -N */
+	struct GRDROTATER_N {	/* -N */
 		bool active;
 	} N;
-	struct S {	/* -S */
+	struct GRDROTATER_S {	/* -S */
 		bool active;
 	} S;
-	struct T {	/* -T<time>, -T<start/stop/inc> or -T<tfile.txt> */
+	struct GRDROTATER_T {	/* -T<time>, -T<start/stop/inc> or -T<tfile.txt> */
 		bool active;
 		unsigned int n_times;	/* Number of reconstruction times */
 		double *value;	/* Array with one or more reconstruction times */
 	} T;
 };
 
-GMT_LOCAL void *New_Ctrl (struct GMT_CTRL *GMT) {	/* Allocate and initialize a new control structure */
+static void *New_Ctrl (struct GMT_CTRL *GMT) {	/* Allocate and initialize a new control structure */
 	struct GRDROTATER_CTRL *C;
 
 	C = gmt_M_memory (GMT, NULL, 1, struct GRDROTATER_CTRL);
@@ -82,7 +82,7 @@ GMT_LOCAL void *New_Ctrl (struct GMT_CTRL *GMT) {	/* Allocate and initialize a n
 	return (C);
 }
 
-GMT_LOCAL void Free_Ctrl (struct GMT_CTRL *GMT, struct GRDROTATER_CTRL *C) {	/* Deallocate control structure */
+static void Free_Ctrl (struct GMT_CTRL *GMT, struct GRDROTATER_CTRL *C) {	/* Deallocate control structure */
 	if (!C) return;
 	gmt_M_str_free (C->In.file);
 	gmt_M_str_free (C->D.file);
@@ -93,7 +93,7 @@ GMT_LOCAL void Free_Ctrl (struct GMT_CTRL *GMT, struct GRDROTATER_CTRL *C) {	/* 
 	gmt_M_free (GMT, C);
 }
 
-GMT_LOCAL int usage (struct GMTAPI_CTRL *API, int level) {
+static int usage (struct GMTAPI_CTRL *API, int level) {
 	const char *name = gmt_show_name_and_purpose (API, THIS_MODULE_LIB, THIS_MODULE_CLASSIC_NAME, THIS_MODULE_PURPOSE);
 	if (level == GMT_MODULE_PURPOSE) return (GMT_NOERROR);
 	GMT_Message (API, GMT_TIME_NONE, "usage: %s <grid> %s -G<outgrid> [-F<polygontable>]\n", name, SPOTTER_E_OPT);
@@ -131,7 +131,7 @@ GMT_LOCAL int usage (struct GMTAPI_CTRL *API, int level) {
 
 }
 
-GMT_LOCAL int parse (struct GMT_CTRL *GMT, struct GRDROTATER_CTRL *Ctrl, struct GMT_OPTION *options) {
+static int parse (struct GMT_CTRL *GMT, struct GRDROTATER_CTRL *Ctrl, struct GMT_OPTION *options) {
 	/* This parses the options provided to grdrotater and sets parameters in CTRL.
 	 * Any GMT common options will override values set previously by other commands.
 	 * It also replaces any file names specified as input or output with the data ID

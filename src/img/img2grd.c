@@ -106,51 +106,51 @@ struct GMT_IMG_COORD {
 };
 
 struct IMG2GRD_CTRL {
-	struct In {	/* Input file name */
+	struct IMG2GRD_In {	/* Input file name */
 		bool active;
 		char *file;	/* Input file name */
 	} In;
-	struct D {	/* -D[<minlat>/<maxlat>] */
+	struct IMG2GRD_D {	/* -D[<minlat>/<maxlat>] */
 		bool active;
 		double min, max;
 	} D;
-	struct E {	/* -E */
+	struct IMG2GRD_E {	/* -E */
 		bool active;
 	} E;
-	struct F {	/* -F */
+	struct IMG2GRD_F {	/* -F */
 		bool active;
 	} F;
-	struct G {	/* -G<output_grdfile> */
+	struct IMG2GRD_G {	/* -G<output_grdfile> */
 		bool active;
 		char *file;
 	} G;
-	struct I {	/* -I<minutes> */
+	struct IMG2GRD_I {	/* -I<minutes> */
 		bool active;
 		double value;
 	} I;
-	struct M {	/* -M */
+	struct IMG2GRD_M {	/* -M */
 		bool active;
 	} M;
-	struct N {	/* -N<ave> */
+	struct IMG2GRD_N {	/* -N<ave> */
 		bool active;
 		int value;
 	} N;
-	struct S {	/* -S<scale> */
+	struct IMG2GRD_S {	/* -S<scale> */
 		bool active;
 		unsigned int mode;
 		double value;
 	} S;
-	struct T {	/* -T<type> */
+	struct IMG2GRD_T {	/* -T<type> */
 		bool active;
 		int value;
 	} T;
-	struct W {	/* -W<maxlon> */
+	struct IMG2GRD_W {	/* -W<maxlon> */
 		bool active;
 		double value;
 	} W;
 };
 
-GMT_LOCAL void *New_Ctrl (struct GMT_CTRL *GMT) {	/* Allocate and initialize a new control structure */
+static void *New_Ctrl (struct GMT_CTRL *GMT) {	/* Allocate and initialize a new control structure */
 	struct IMG2GRD_CTRL *C;
 
 	C = gmt_M_memory (GMT, NULL, 1, struct IMG2GRD_CTRL);
@@ -165,14 +165,14 @@ GMT_LOCAL void *New_Ctrl (struct GMT_CTRL *GMT) {	/* Allocate and initialize a n
 	return (C);
 }
 
-GMT_LOCAL void Free_Ctrl (struct GMT_CTRL *GMT, struct IMG2GRD_CTRL *C) {	/* Deallocate control structure */
+static void Free_Ctrl (struct GMT_CTRL *GMT, struct IMG2GRD_CTRL *C) {	/* Deallocate control structure */
 	if (!C) return;
 	gmt_M_str_free (C->In.file);
 	gmt_M_str_free (C->G.file);
 	gmt_M_free (GMT, C);
 }
 
-GMT_LOCAL int usage (struct GMTAPI_CTRL *API, int level) {
+static int usage (struct GMTAPI_CTRL *API, int level) {
 	const char *name = gmt_show_name_and_purpose (API, THIS_MODULE_LIB, THIS_MODULE_CLASSIC_NAME, THIS_MODULE_PURPOSE);
 	if (level == GMT_MODULE_PURPOSE) return (GMT_NOERROR);
 	GMT_Message (API, GMT_TIME_NONE, "usage: %s <world_image_filename> %s -G<outgrid> -T<type>\n", name, GMT_Rgeo_OPT);
@@ -208,7 +208,7 @@ GMT_LOCAL int usage (struct GMTAPI_CTRL *API, int level) {
 	return (GMT_MODULE_USAGE);
 }
 
-GMT_LOCAL int parse (struct GMT_CTRL *GMT, struct IMG2GRD_CTRL *Ctrl, struct GMT_OPTION *options) {
+static int parse (struct GMT_CTRL *GMT, struct IMG2GRD_CTRL *Ctrl, struct GMT_OPTION *options) {
 
 	/* This parses the options provided to grdcut and sets parameters in CTRL.
 	 * Any GMT common options will override values set previously by other commands.

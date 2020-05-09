@@ -119,71 +119,71 @@
 
 struct GRDSPOTTER_CTRL {	/* All control options for this program (except common args) */
 	/* active is true if the option has been activated */
-	struct In {
+	struct GRDSPOTTER_In {
 		bool active;
 		char *file;
 	} In;
-	struct A {	/* -A<file> */
+	struct GRDSPOTTER_A {	/* -A<file> */
 		bool active;
 		char *file;
 	} A;
-	struct D {	/* -Di<file> */
+	struct GRDSPOTTER_D {	/* -Di<file> */
 		bool active;
 		char *file;
 	} D;
-	struct E {	/* -E[+rotfile */
+	struct GRDSPOTTER_E {	/* -E[+rotfile */
 		bool active;
 		bool mode;
 		char *file;
 	} E;
-	struct G {	/* -Ggrdfile */
+	struct GRDSPOTTER_G {	/* -Ggrdfile */
 		bool active;	/* Pixel registration */
 		char *file;
 	} G;
-	struct L {	/* -Lfile */
+	struct GRDSPOTTER_L {	/* -Lfile */
 		bool active;
 		char *file;
 	} L;
-	struct M {	/* -M */
+	struct GRDSPOTTER_M {	/* -M */
 		bool active;
 	} M;
-	struct N {	/* -N */
+	struct GRDSPOTTER_N {	/* -N */
 		bool active;
 		double t_upper;
 	} N;
-	struct PA {	/* -Dp<file> */
+	struct GRDSPOTTER_PA {	/* -Dp<file> */
 		bool active;
 		char *file;
 	} PA;
-	struct Q {	/* -Q */
+	struct GRDSPOTTER_Q {	/* -Q */
 		bool active;
 		unsigned int mode;
 		unsigned int id;
 		char *file;
 	} Q;
-	struct S2 {	/* -S2 */
+	struct GRDSPOTTER_S2 {	/* -S2 */
 		bool active;
 		double dist;
 	} S2;
-	struct S {	/* -S */
+	struct GRDSPOTTER_S {	/* -S */
 		bool active;
 	} S;
-	struct T {	/* -T */
+	struct GRDSPOTTER_T {	/* -T */
 		bool active[2];
 		double t_fix;	/* Set fixed age*/
 	} T;
-	struct W {	/* -W */
+	struct GRDSPOTTER_W {	/* -W */
 		bool active;
 		unsigned int n_try;
 	} W;
-	struct Z {	/* -Z */
+	struct GRDSPOTTER_Z {	/* -Z */
 		bool active;
 		bool mode;
 		double min, max, inc;
 	} Z;
 };
 
-GMT_LOCAL void *New_Ctrl (struct GMT_CTRL *GMT) {	/* Allocate and initialize a new control structure */
+static void *New_Ctrl (struct GMT_CTRL *GMT) {	/* Allocate and initialize a new control structure */
 	struct GRDSPOTTER_CTRL *C;
 
 	C = gmt_M_memory (GMT, NULL, 1, struct GRDSPOTTER_CTRL);
@@ -195,7 +195,7 @@ GMT_LOCAL void *New_Ctrl (struct GMT_CTRL *GMT) {	/* Allocate and initialize a n
 	return (C);
 }
 
-GMT_LOCAL void Free_Ctrl (struct GMT_CTRL *GMT, struct GRDSPOTTER_CTRL *C) {	/* Deallocate control structure */
+static void Free_Ctrl (struct GMT_CTRL *GMT, struct GRDSPOTTER_CTRL *C) {	/* Deallocate control structure */
 	if (!C) return;
 	gmt_M_str_free (C->In.file);
 	gmt_M_str_free (C->A.file);
@@ -207,7 +207,7 @@ GMT_LOCAL void Free_Ctrl (struct GMT_CTRL *GMT, struct GRDSPOTTER_CTRL *C) {	/* 
 	gmt_M_free (GMT, C);
 }
 
-GMT_LOCAL int usage (struct GMTAPI_CTRL *API, int level) {
+static int usage (struct GMTAPI_CTRL *API, int level) {
 	const char *name = gmt_show_name_and_purpose (API, THIS_MODULE_LIB, THIS_MODULE_CLASSIC_NAME, THIS_MODULE_PURPOSE);
 	if (level == GMT_MODULE_PURPOSE) return (GMT_NOERROR);
 	GMT_Message (API, GMT_TIME_NONE, "usage: %s <ingrid> -E[+]<rottable> -G<CVAgrid> %s\n", name, GMT_I_OPT);
@@ -245,7 +245,7 @@ GMT_LOCAL int usage (struct GMTAPI_CTRL *API, int level) {
 	return (GMT_MODULE_USAGE);
 }
 
-GMT_LOCAL int parse (struct GMT_CTRL *GMT, struct GRDSPOTTER_CTRL *Ctrl, struct GMT_OPTION *options) {
+static int parse (struct GMT_CTRL *GMT, struct GRDSPOTTER_CTRL *Ctrl, struct GMT_OPTION *options) {
 	/* This parses the options provided to grdspotter and sets parameters in CTRL.
 	 * Any GMT common options will override values set previously by other commands.
 	 * It also replaces any file names specified as input or output with the data ID
@@ -537,7 +537,7 @@ EXTERN_MSC int GMT_grdspotter (void *V_API, int mode, void *args) {
 
 	struct FLOWLINE *flowline = NULL;	/* Array with flowline structures */
 
-	struct ID {			/* Information regarding one chain ID */
+	struct GRDSPOTTER_ID {			/* Information regarding one chain ID */
 		double wesn[4];		/* Do not calculate flowlines outside this box */
 		bool ok;		/* true if we want to calculate this CVA */
 		bool check_region;	/* true if w, e, s, n is more restrictive than command line -R */
@@ -660,7 +660,7 @@ EXTERN_MSC int GMT_grdspotter (void *V_API, int mode, void *args) {
 		ID = gmt_M_memory (GMT, NULL, L->header->size, int);
 		for (ij = 0; ij < L->header->size; ij++) ID[ij] = irint ((double)L->data[ij]);
 		if (GH->alloc_mode == GMT_ALLOC_INTERNALLY) gmt_M_free_aligned (GMT, L->data);	/* Just free the array since we use ID; Grid struct is destroyed at end */
-		ID_info = gmt_M_memory (GMT, NULL, lrint (L->header->z_max) + 1, struct ID);
+		ID_info = gmt_M_memory (GMT, NULL, lrint (L->header->z_max) + 1, struct GRDSPOTTER_ID);
 		if (Ctrl->Q.mode == 1) {	/* Only doing one CVA with no extra restrictions */
 			ID_info[Ctrl->Q.id].ok = true;	/* Every other info in struct array is NULL or 0 */
 		}

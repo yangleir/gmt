@@ -44,31 +44,31 @@
 #define THIS_MODULE_OPTIONS "-:RVbdehiqrs" GMT_OPT("F")
 
 struct SPHINTERPOLATE_CTRL {
-	struct G {	/* -G<grdfile> */
+	struct SPHINTERPOLATE_G {	/* -G<grdfile> */
 		bool active;
 		char *file;
 	} G;
-	struct Q {	/* -Q<interpolation> */
+	struct SPHINTERPOLATE_Q {	/* -Q<interpolation> */
 		bool active;
 		unsigned int mode;
 		double value[3];
 	} Q;
-	struct T {	/* -T for variable tension */
+	struct SPHINTERPOLATE_T {	/* -T for variable tension */
 		bool active;
 	} T;
-	struct Z {	/* -Z to scale data */
+	struct SPHINTERPOLATE_Z {	/* -Z to scale data */
 		bool active;
 	} Z;
 };
 
-GMT_LOCAL void *New_Ctrl (struct GMT_CTRL *GMT) {	/* Allocate and initialize a new control structure */
+static void *New_Ctrl (struct GMT_CTRL *GMT) {	/* Allocate and initialize a new control structure */
 	struct SPHINTERPOLATE_CTRL *C;
 
 	C = gmt_M_memory (GMT, NULL, 1, struct SPHINTERPOLATE_CTRL);
 	return (C);
 }
 
-GMT_LOCAL void Free_Ctrl (struct GMT_CTRL *GMT, struct SPHINTERPOLATE_CTRL *C) {	/* Deallocate control structure */
+static void Free_Ctrl (struct GMT_CTRL *GMT, struct SPHINTERPOLATE_CTRL *C) {	/* Deallocate control structure */
 	if (!C) return;
 	gmt_M_str_free (C->G.file);
 	gmt_M_free (GMT, C);
@@ -88,7 +88,7 @@ GMT_LOCAL int sphinterpolate_get_args (struct GMT_CTRL *GMT, char *arg, double p
 	return (m);
 }
 
-GMT_LOCAL int usage (struct GMTAPI_CTRL *API, int level) {
+static int usage (struct GMTAPI_CTRL *API, int level) {
 	const char *name = gmt_show_name_and_purpose (API, THIS_MODULE_LIB, THIS_MODULE_CLASSIC_NAME, THIS_MODULE_PURPOSE);
 	if (level == GMT_MODULE_PURPOSE) return (GMT_NOERROR);
 	GMT_Message (API, GMT_TIME_NONE, "\t==> The hard work is done by algorithms 772 (STRIPACK) & 773 (SSRFPACK) by R. J. Renka [1997] <==\n\n");
@@ -125,7 +125,7 @@ GMT_LOCAL int usage (struct GMTAPI_CTRL *API, int level) {
 	return (GMT_MODULE_USAGE);
 }
 
-GMT_LOCAL int parse (struct GMT_CTRL *GMT, struct SPHINTERPOLATE_CTRL *Ctrl, struct GMT_OPTION *options) {
+static int parse (struct GMT_CTRL *GMT, struct SPHINTERPOLATE_CTRL *Ctrl, struct GMT_OPTION *options) {
 	/* This parses the options provided to sphinterpolate and sets parameters in CTRL.
 	 * Any GMT common options will override values set previously by other commands.
 	 * It also replaces any file names specified as input or output with the data ID
@@ -275,6 +275,11 @@ EXTERN_MSC int GMT_sphinterpolate (void *V_API, int mode, void *args) {
 			else if (gmt_M_rec_is_eof (GMT)) 		/* Reached end of file */
 				break;
 			continue;	/* Go back and read the next record */
+		}
+
+		if (In->data == NULL) {
+			gmt_quit_bad_record (API, In);
+			Return (API->error);
 		}
 
 		/* Data record to process */

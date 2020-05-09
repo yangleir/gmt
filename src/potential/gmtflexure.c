@@ -58,57 +58,57 @@
  */
 
 struct GMTFLEXURE_CTRL {
-	struct Out {	/* -> */
+	struct GMTFLEXURE_Out {	/* -> */
 		bool active;
 		char *file;
 	} Out;
-	struct A {	/* -A[l|r]<bc>[<args>] */
+	struct GMTFLEXURE_A {	/* -A[l|r]<bc>[<args>] */
 		bool active;
 		unsigned int bc[2];	/* Left and Right BC code */
 		double deflection[2], moment[2], force[2];	/* Left and Right arguments */
 	} A;
-	struct C {	/* -Cy<E> or -Cp<poisson> */
+	struct GMTFLEXURE_C {	/* -Cy<E> or -Cp<poisson> */
 		bool active[2];
 		double E, nu;
 	} C;
-	struct D {	/* -D<rhom/rhol[/rhoi]/rhow> */
+	struct GMTFLEXURE_D {	/* -D<rhom/rhol[/rhoi]/rhow> */
 		bool active;
 		double rhom, rhol, rhoi, rhow;
 	} D;
-	struct E {	/* -E<te|D|>file> */
+	struct GMTFLEXURE_E {	/* -E<te|D|>file> */
 		bool active;
 		double te;
 		char *file;
 	} E;
-	struct F {	/* -F<force> */
+	struct GMTFLEXURE_F {	/* -F<force> */
 		bool active;
 		double force;
 	} F;
-	struct L {	/* Use variable restoring force [constant] */
+	struct GMTFLEXURE_L {	/* Use variable restoring force [constant] */
 		bool active;
 	} L;
-	struct M {	/* -Mx|z  */
+	struct GMTFLEXURE_M {	/* -Mx|z  */
 		bool active[2];	/* True if km, else m */
 	} M;
-	struct Q {	/* Load specifier -Qn|q|t[/args] */
+	struct GMTFLEXURE_Q {	/* Load specifier -Qn|q|t[/args] */
 		bool active;
 		bool set_x;
 		unsigned int mode;
 		struct GMT_ARRAY T;
 		char *file;
 	} Q;
-	struct S {	/* Compute second derivatives (curvatures) */
+	struct GMTFLEXURE_S {	/* Compute second derivatives (curvatures) */
 		bool active;
 	} S;
-	struct T {	/* Pre-existing deformation */
+	struct GMTFLEXURE_T {	/* Pre-existing deformation */
 		bool active;
 		char *file;
 	} T;
-	struct W {	/* Water depth */
+	struct GMTFLEXURE_W {	/* Water depth */
 		bool active;
 		double water_depth;	/* Reference water depth [0] */
 	} W;
-	struct Z {	/* Moho depth */
+	struct GMTFLEXURE_Z {	/* Moho depth */
 		bool active;
 		double zm;	/* Reference depth to flexed surface [0] */
 	} Z;
@@ -129,7 +129,7 @@ enum gmtflexure_bc {
 	BC_CLAMPED,
 	BC_FREE};
 
-GMT_LOCAL void *New_Ctrl (struct GMT_CTRL *GMT) {	/* Allocate and initialize a new control structure */
+static void *New_Ctrl (struct GMT_CTRL *GMT) {	/* Allocate and initialize a new control structure */
 	struct GMTFLEXURE_CTRL *C = NULL;
 
 	C = gmt_M_memory (GMT, NULL, 1, struct GMTFLEXURE_CTRL);
@@ -141,7 +141,7 @@ GMT_LOCAL void *New_Ctrl (struct GMT_CTRL *GMT) {	/* Allocate and initialize a n
 	return (C);
 }
 
-GMT_LOCAL void Free_Ctrl (struct GMT_CTRL *GMT, struct GMTFLEXURE_CTRL *C) {	/* Deallocate control structure */
+static void Free_Ctrl (struct GMT_CTRL *GMT, struct GMTFLEXURE_CTRL *C) {	/* Deallocate control structure */
 	if (!C) return;
 	gmt_M_str_free (C->Out.file);
 	gmt_M_str_free (C->E.file);
@@ -151,7 +151,7 @@ GMT_LOCAL void Free_Ctrl (struct GMT_CTRL *GMT, struct GMTFLEXURE_CTRL *C) {	/* 
 	gmt_M_free (GMT, C);
 }
 
-GMT_LOCAL int parse (struct GMT_CTRL *GMT, struct GMTFLEXURE_CTRL *Ctrl, struct GMT_OPTION *options) {
+static int parse (struct GMT_CTRL *GMT, struct GMTFLEXURE_CTRL *Ctrl, struct GMT_OPTION *options) {
 
 	unsigned int side, k, n_errors = 0, n_files = 0;
 	int n;
@@ -294,7 +294,7 @@ GMT_LOCAL int parse (struct GMT_CTRL *GMT, struct GMTFLEXURE_CTRL *Ctrl, struct 
 	return (n_errors ? GMT_PARSE_ERROR : GMT_NOERROR);
 }
 
-GMT_LOCAL int usage (struct GMTAPI_CTRL *API, int level) {
+static int usage (struct GMTAPI_CTRL *API, int level) {
 	const char *name = gmt_show_name_and_purpose (API, THIS_MODULE_LIB, THIS_MODULE_CLASSIC_NAME, THIS_MODULE_PURPOSE);
 	if (level == GMT_MODULE_PURPOSE) return (GMT_NOERROR);
 	GMT_Message (API, GMT_TIME_NONE, "usage: %s -D<rhom>/<rhol>[/<rhoi>]/<rhow> -E<te> -Q<loadinfo> [-A[l|r]<bc>[/<args>]]\n", name);

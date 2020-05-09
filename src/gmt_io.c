@@ -156,12 +156,6 @@
 #include "gmt_internals.h"
 #include "gmt_common_byteswap.h"
 
-/* A few functions needed from elsewhere */
-EXTERN_MSC unsigned int gmtapi_count_objects (struct GMTAPI_CTRL *API, enum GMT_enum_family family, unsigned int geometry, unsigned int direction, int *first_ID);
-EXTERN_MSC int gmtapi_unregister_io (struct GMTAPI_CTRL *API, int object_ID, unsigned int direction);
-EXTERN_MSC int gmtapi_validate_id (struct GMTAPI_CTRL *API, int family, int object_ID, int direction);
-EXTERN_MSC char *gmtapi_create_header_item (struct GMTAPI_CTRL *API, unsigned int mode, void *arg);
-
 #ifdef HAVE_DIRENT_H_
 #	include <dirent.h>
 #endif
@@ -213,8 +207,8 @@ GMT_LOCAL bool gmtio_is_a_NaN_line (struct GMT_CTRL *GMT, char *line) {
 }
 
 /*! . */
-GMT_LOCAL unsigned int gmtio_is_segment_header (struct GMT_CTRL *GMT, char *line)
-{	/* Returns 1 if this record is a GMT segment header;
+GMT_LOCAL unsigned int gmtio_is_segment_header (struct GMT_CTRL *GMT, char *line) {
+	/* Returns 1 if this record is a GMT segment header;
 	 * Returns 2 if this record is a segment breaker;
 	 * Otherwise returns 0 */
 	if (GMT->current.setting.io_blankline[GMT_IN] && gmt_is_a_blank_line (line)) return (2);	/* Treat blank line as segment break */
@@ -2744,6 +2738,7 @@ GMT_LOCAL void gmtio_build_text_from_ogr (struct GMT_CTRL *GMT, struct GMT_DATAS
 		switch (GMT->common.a.col[col]) {
 			case GMT_IS_D:	/* Format -D<distance> */
 			case GMT_IS_G:	/* Format -G<fill> */
+			case GMT_IS_L:  /* Format -L<label> */
 			case GMT_IS_I:	/* Format -I<ID> */
 			case GMT_IS_T:	/* Format -T<text> */
 			case GMT_IS_W:	/* Format -W<pen> */
@@ -2821,12 +2816,12 @@ GMT_LOCAL int gmtio_prep_ogr_output (struct GMT_CTRL *GMT, struct GMT_DATASET *D
 	 * prevent us from register the data set separately in order to call GMT_gmtinfo.  We must temporarily
 	 * unregister the output, do our thing, then reregister again. */
 
-	n_reg = gmtapi_count_objects (GMT->parent, GMT_IS_DATASET, D->geometry, GMT_OUT, &object_ID);	/* Are there outputs registered already? */
+	n_reg = gmtlib_count_objects (GMT->parent, GMT_IS_DATASET, D->geometry, GMT_OUT, &object_ID);	/* Are there outputs registered already? */
 	if (n_reg == 1) {	/* Yes, must save and unregister, then reregister later */
-		if ((item = gmtapi_validate_id (GMT->parent, GMT_IS_DATASET, object_ID, GMT_OUT)) == GMT_NOTSET)
+		if ((item = gmtlib_validate_id (GMT->parent, GMT_IS_DATASET, object_ID, GMT_OUT, GMT_NOTSET)) == GMT_NOTSET)
 			return (GMT->parent->error);
 		gmt_M_memcpy (&O, GMT->parent->object[item], 1, struct GMTAPI_DATA_OBJECT);
-		gmtapi_unregister_io (GMT->parent, object_ID, GMT_OUT);
+		gmtlib_unregister_io (GMT->parent, object_ID, GMT_OUT);
 	}
 	else {	/* Cannot have registered more than one output for OGR data */
 		GMT_Report (GMT->parent, GMT_MSG_ERROR, "Cannot specify more than one output file for OGR\n");
@@ -2857,7 +2852,7 @@ GMT_LOCAL int gmtio_prep_ogr_output (struct GMT_CTRL *GMT, struct GMT_DATASET *D
 	if ((object_ID = GMT_Register_IO (GMT->parent, GMT_IS_DATASET, GMT_IS_FILE, GMT_IS_POINT, GMT_OUT, NULL, D)) == GMT_NOTSET) {
 		return (GMT->parent->error);
 	}
-	if ((item = gmtapi_validate_id (GMT->parent, GMT_IS_DATASET, object_ID, GMT_OUT)) == GMT_NOTSET) {
+	if ((item = gmtlib_validate_id (GMT->parent, GMT_IS_DATASET, object_ID, GMT_OUT, GMT_NOTSET)) == GMT_NOTSET) {
 		return (GMT->parent->error);
 	}
 	gmt_M_memcpy (GMT->parent->object[item], &O, 1, struct GMTAPI_DATA_OBJECT);	/* Restore what we had before */
@@ -3846,8 +3841,8 @@ GMT_LOCAL int gmtio_write_table (struct GMT_CTRL *GMT, void *dest, unsigned int 
 }
 
 /*! . */
-GMT_LOCAL void * gmtio_nc_input (struct GMT_CTRL *GMT, FILE *fp, uint64_t *n, int *retval)
-{	/* netCDF tables contain information about the number of records, so we can use a
+GMT_LOCAL void * gmtio_nc_input (struct GMT_CTRL *GMT, FILE *fp, uint64_t *n, int *retval) {
+	/* netCDF tables contain information about the number of records, so we can use a
 	 * faster strategy: When file is opened, determine number of rows and columns and
 	 * preallocate all the column vectors.  Then, when we ask for the first data record
 	 * we read the entire data set.  We then simply return the values corresponding to
@@ -4090,8 +4085,8 @@ GMT_LOCAL FILE *gmtio_nc_fopen (struct GMT_CTRL *GMT, const char *filename, cons
 }
 
 /*! . */
-GMT_LOCAL bool gmtio_file_is_readable (struct GMT_CTRL *GMT, char *path)
-{	/* Returns true if readable, otherwise give error and return false */
+GMT_LOCAL bool gmtio_file_is_readable (struct GMT_CTRL *GMT, char *path) {
+	/* Returns true if readable, otherwise give error and return false */
 	if (!access (path, R_OK)) return (true);	/* Readable */
 	/* Get here when found, but not readable */
 	GMT_Report (GMT->parent, GMT_MSG_WARNING, "Unable to read %s (permissions?)\n", path);
@@ -7139,12 +7134,12 @@ void gmtlib_write_newheaders (struct GMT_CTRL *GMT, FILE *fp, uint64_t n_cols) {
 	}
 
 	if (GMT->common.h.multi_segment) {	/* A multi-segment record */
-		gmtlib_write_tableheader (GMT, fp, gmtapi_create_header_item (GMT->parent, GMT_COMMENT_IS_MULTISEG, GMT->common.h.multi_segment));
+		gmtlib_write_tableheader (GMT, fp, gmtlib_create_header_item (GMT->parent, GMT_COMMENT_IS_MULTISEG, GMT->common.h.multi_segment));
 		return;
 	}
 
 	/* Always write command line */
-	gmtlib_write_tableheader (GMT, fp, gmtapi_create_header_item (GMT->parent, GMT_COMMENT_IS_COMMAND | GMT_COMMENT_IS_OPTION, GMT->current.options));
+	gmtlib_write_tableheader (GMT, fp, gmtlib_create_header_item (GMT->parent, GMT_COMMENT_IS_COMMAND | GMT_COMMENT_IS_OPTION, GMT->current.options));
 	if (GMT->common.h.remark) {	/* Optional remark(s) provided; could be several lines separated by \n */
 		gmtio_write_multilines (GMT, fp, GMT->common.h.remark, "Remark");
 	}
@@ -8779,4 +8774,10 @@ int gmt_mkdir (const char *path)
 	}
 
 	return 0;
+}
+
+void gmt_quit_bad_record (struct GMTAPI_CTRL *API, struct GMT_RECORD *In) {
+	GMT_Report (API, GMT_MSG_ERROR, "No data columns to work with - exiting\n");
+	if (In->text) GMT_Report (API, GMT_MSG_ERROR, "Data file only has trailing text. GMT expects numerical columns followed by optional trailing text\n");
+	API->error = GMT_DIM_TOO_SMALL;
 }

@@ -60,11 +60,11 @@ enum psscale_shift {
 /* Control structure for psscale */
 
 struct PSSCALE_CTRL {
-	struct C {	/* -C<cpt> */
+	struct PSSCALE_C {	/* -C<cpt> */
 		bool active;
 		char *file;
 	} C;
-	struct D {	/* -D[g|j|n|x]<refpoint>+w<length>/<width>[+m<move>][+h][+j<justify>][+o<dx>[/<dy>]]+e[b|f][<length>][+n[<text>]] */
+	struct PSSCALE_D {	/* -D[g|j|n|x]<refpoint>+w<length>/<width>[+m<move>][+h][+j<justify>][+o<dx>[/<dy>]]+e[b|f][<length>][+n[<text>]] */
 		bool active;
 		bool horizontal;
 		bool move;
@@ -79,48 +79,48 @@ struct PSSCALE_CTRL {
 		char *etext;
 		char *opt;
 	} D;
-	struct F {	/* -F[+c<clearance>][+g<fill>][+i[<off>/][<pen>]][+p[<pen>]][+r[<radius>]][+s[<dx>/<dy>/][<shade>]][+d] */
+	struct PSSCALE_F {	/* -F[+c<clearance>][+g<fill>][+i[<off>/][<pen>]][+p[<pen>]][+r[<radius>]][+s[<dx>/<dy>/][<shade>]][+d] */
 		bool active;
 		struct GMT_MAP_PANEL *panel;
 	} F;
-	struct G {	/* -Glow/high for input CPT truncation */
+	struct PSSCALE_G {	/* -Glow/high for input CPT truncation */
 		bool active;
 		double z_low, z_high;
 	} G;
-	struct I {	/* -I[<intens>|<min_i>/<max_i>] */
+	struct PSSCALE_I {	/* -I[<intens>|<min_i>/<max_i>] */
 		bool active;
 		double min, max;
 	} I;
-	struct M {	/* -M */
+	struct PSSCALE_M {	/* -M */
 		bool active;
 	} M;
-	struct N {	/* -N<dpi>|p */
+	struct PSSCALE_N {	/* -N<dpi>|p */
 		bool active;
 		unsigned int mode;
 		double dpi;
 	} N;
-	struct L {	/* -L[i][<gap>] */
+	struct PSSCALE_L {	/* -L[i][<gap>] */
 		bool active;
 		bool interval;
 		double spacing;
 	} L;
-	struct Q {	/* -Q */
+	struct PSSCALE_Q {	/* -Q */
 		bool active;
 	} Q;
-	struct S {	/* -S */
+	struct PSSCALE_S {	/* -S */
 		bool active;
 	} S;
-	struct W {	/* -W<scale> */
+	struct PSSCALE_W {	/* -W<scale> */
 		bool active;
 		double scale;
 	} W;
-	struct Z {	/* -Z<zfile> */
+	struct PSSCALE_Z {	/* -Z<zfile> */
 		bool active;
 		char *file;
 	} Z;
 };
 
-GMT_LOCAL void *New_Ctrl (struct GMT_CTRL *GMT) {	/* Allocate and initialize a new control structure */
+static void *New_Ctrl (struct GMT_CTRL *GMT) {	/* Allocate and initialize a new control structure */
 	struct PSSCALE_CTRL *C;
 
 	C = gmt_M_memory (GMT, NULL, 1, struct PSSCALE_CTRL);
@@ -135,7 +135,7 @@ GMT_LOCAL void *New_Ctrl (struct GMT_CTRL *GMT) {	/* Allocate and initialize a n
 	return (C);
 }
 
-GMT_LOCAL void Free_Ctrl (struct GMT_CTRL *GMT, struct PSSCALE_CTRL *C) {	/* Deallocate control structure */
+static void Free_Ctrl (struct GMT_CTRL *GMT, struct PSSCALE_CTRL *C) {	/* Deallocate control structure */
 	if (!C) return;
 	gmt_M_str_free (C->C.file);
 	gmt_free_refpoint (GMT, &C->D.refpoint);
@@ -146,7 +146,7 @@ GMT_LOCAL void Free_Ctrl (struct GMT_CTRL *GMT, struct PSSCALE_CTRL *C) {	/* Dea
 	gmt_M_free (GMT, C);
 }
 
-GMT_LOCAL int usage (struct GMTAPI_CTRL *API, int level) {
+static int usage (struct GMTAPI_CTRL *API, int level) {
 	/* This displays the psscale synopsis and optionally full usage information */
 
 	const char *name = gmt_show_name_and_purpose (API, THIS_MODULE_LIB, THIS_MODULE_CLASSIC_NAME, THIS_MODULE_PURPOSE);
@@ -216,7 +216,7 @@ GMT_LOCAL int usage (struct GMTAPI_CTRL *API, int level) {
 	return (GMT_MODULE_USAGE);
 }
 
-GMT_LOCAL int parse (struct GMT_CTRL *GMT, struct PSSCALE_CTRL *Ctrl, struct GMT_OPTION *options) {
+static int parse (struct GMT_CTRL *GMT, struct PSSCALE_CTRL *Ctrl, struct GMT_OPTION *options) {
 	/* This parses the options provided to psscale and sets parameters in Ctrl.
 	 * Note Ctrl has already been initialized and non-zero default values set.
 	 * Any GMT common options will override values set previously by other commands.

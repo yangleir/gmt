@@ -49,7 +49,7 @@ PostScript code is written to stdout.
 /* Control structure for pscoupe */
 
 struct PSCOUPE_CTRL {
-	struct A {	/* -A[<params>] */
+	struct PSCOUPE_A {	/* -A[<params>] */
 		bool active, frame, polygon;
 		int fuseau;
 		char proj_type;
@@ -59,31 +59,31 @@ struct PSCOUPE_CTRL {
 		struct nodal_plane PREF;
 		char newfile[PATH_MAX], extfile[PATH_MAX];
 	} A;
- 	struct E {	/* -E<fill> */
+ 	struct PSCOUPE_E {	/* -E<fill> */
 		bool active;
 		struct GMT_FILL fill;
 	} E;
-	struct F {	/* Repeatable -F<mode>[<args>] */
+	struct PSCOUPE_F {	/* Repeatable -F<mode>[<args>] */
 		bool active;
 	} F;
- 	struct G {	/* -G<fill> */
+ 	struct PSCOUPE_G {	/* -G<fill> */
 		bool active;
 		struct GMT_FILL fill;
 	} G;
-	struct L {	/* -L<pen> */
+	struct PSCOUPE_L {	/* -L<pen> */
 		bool active;
 		struct GMT_PEN pen;
 	} L;
-	struct M {	/* -M */
+	struct PSCOUPE_M {	/* -M */
 		bool active;
 	} M;
-	struct N {	/* -N */
+	struct PSCOUPE_N {	/* -N */
 		bool active;
 	} N;
-	struct Q {	/* -Q */
+	struct PSCOUPE_Q {	/* -Q */
 		bool active;
 	} Q;
-	struct S {	/* -S<format><scale>[+a<angle>][+f<font>][+j<justify>][+o<dx>[/<dy>]] and -Fs */
+	struct PSCOUPE_S {	/* -S<format><scale>[+a<angle>][+f<font>][+j<justify>][+o<dx>[/<dy>]] and -Fs */
 		bool active;
 		bool zerotrace;
 		bool no_label;
@@ -99,47 +99,47 @@ struct PSCOUPE_CTRL {
 		struct GMT_FILL fill;
 		struct GMT_FONT font;
 	} S;
-	struct T {	/* -Tnplane[/<pen>] */
+	struct PSCOUPE_T {	/* -Tnplane[/<pen>] */
 		bool active;
 		unsigned int n_plane;
 		struct GMT_PEN pen;
 	} T;
-	struct W {	/* -W<pen> */
+	struct PSCOUPE_W {	/* -W<pen> */
 		bool active;
 		struct GMT_PEN pen;
 	} W;
-	struct Z {	/* -Z<cpt> */
+	struct PSCOUPE_Z {	/* -Z<cpt> */
 		bool active;
 		char *file;
 	} Z;
-	struct A2 {	/* -Fa[size[/Psymbol[Tsymbol]]] */
+	struct PSCOUPE_A2 {	/* -Fa[size[/Psymbol[Tsymbol]]] */
 		bool active;
 		char P_symbol, T_symbol;
 		double size;
 	} A2;
-	struct E2 {	/* -Fe<fill> */
+	struct PSCOUPE_E2 {	/* -Fe<fill> */
 		bool active;
 		struct GMT_FILL fill;
 	} E2;
- 	struct G2 {	/* -Fg<fill> */
+ 	struct PSCOUPE_G2 {	/* -Fg<fill> */
 		bool active;
 		struct GMT_FILL fill;
 	} G2;
- 	struct P2 {	/* -Fp[<pen>] */
+ 	struct PSCOUPE_P2 {	/* -Fp[<pen>] */
 		bool active;
 		struct GMT_PEN pen;
 	} P2;
-	struct R2 {	/* -Fr[<fill>] */
+	struct PSCOUPE_R2 {	/* -Fr[<fill>] */
 		bool active;
 		struct GMT_FILL fill;
 	} R2;
- 	struct T2 {	/* -Ft[<pen>] */
+ 	struct PSCOUPE_T2 {	/* -Ft[<pen>] */
 		bool active;
 		struct GMT_PEN pen;
 	} T2;
 };
 
-GMT_LOCAL void *New_Ctrl (struct GMT_CTRL *GMT) {	/* Allocate and initialize a new control structure */
+static void *New_Ctrl (struct GMT_CTRL *GMT) {	/* Allocate and initialize a new control structure */
 	struct PSCOUPE_CTRL *C;
 
 	C = gmt_M_memory (GMT, NULL, 1, struct PSCOUPE_CTRL);
@@ -160,7 +160,7 @@ GMT_LOCAL void *New_Ctrl (struct GMT_CTRL *GMT) {	/* Allocate and initialize a n
 	return (C);
 }
 
-GMT_LOCAL void Free_Ctrl (struct GMT_CTRL *GMT, struct PSCOUPE_CTRL *C) {	/* Deallocate control structure */
+static void Free_Ctrl (struct GMT_CTRL *GMT, struct PSCOUPE_CTRL *C) {	/* Deallocate control structure */
 	if (!C) return;
 	gmt_M_str_free (C->Z.file);
 	gmt_M_free (GMT, C);
@@ -423,7 +423,7 @@ GMT_LOCAL void pscoupe_distaz (double lat1, double lon1, double lat2, double lon
 	return;
 }
 
-GMT_LOCAL int usage (struct GMTAPI_CTRL *API, int level) {
+static int usage (struct GMTAPI_CTRL *API, int level) {
 	/* This displays the pscoupe synopsis and optionally full usage information */
 
 	const char *name = gmt_show_name_and_purpose (API, THIS_MODULE_LIB, THIS_MODULE_CLASSIC_NAME, THIS_MODULE_PURPOSE);
@@ -503,7 +503,7 @@ GMT_LOCAL int usage (struct GMTAPI_CTRL *API, int level) {
 	return (GMT_MODULE_USAGE);
 }
 
-GMT_LOCAL int parse (struct GMT_CTRL *GMT, struct PSCOUPE_CTRL *Ctrl, struct GMT_OPTION *options) {
+static int parse (struct GMT_CTRL *GMT, struct PSCOUPE_CTRL *Ctrl, struct GMT_OPTION *options) {
 	/* This parses the options provided to pscoupe and sets parameters in Ctrl.
 	 * Note Ctrl has already been initialized and non-zero default values set.
 	 * Any GMT common options will override values set previously by other commands.
@@ -939,6 +939,11 @@ EXTERN_MSC int GMT_pscoupe (void *V_API, int mode, void *args) {
 				continue;
 			if (gmt_M_rec_is_eof (GMT)) 		/* Reached end of file */
 				break;
+		}
+
+		if (In->data == NULL) {
+			gmt_quit_bad_record (API, In);
+			Return (API->error);
 		}
 
 		/* Data record to process */

@@ -57,22 +57,22 @@ Use option -x to set the number of threads. e.g. -x2, -x4, ... or -xa to use all
 #define THIS_MODULE_OPTIONS "-RVfr" GMT_ADD_x_OPT
 
 struct GRDFILTER_CTRL {
-	struct GRDFILT_In {
+	struct GRDFILTER_In {
 		bool active;
 		char *file;
 	} In;
-	struct GRDFILT_A {	/* -A<a|r|w|c>row/col */
+	struct GRDFILTER_A {	/* -A<a|r|w|c>row/col */
 		bool active;
 		char mode;
 		unsigned int ROW, COL;
 		double x, y;
 		char *file;
 	} A;
-	struct GRDFILT_D {	/* -D<distflag> */
+	struct GRDFILTER_D {	/* -D<distflag> */
 		bool active;
 		int mode;	/* -1 to 5 */
 	} D;
-	struct GRDFILT_F {	/* <type>[-]<filter_width>[/<width2>][<mode>] */
+	struct GRDFILTER_F {	/* <type>[-]<filter_width>[/<width2>][<mode>] */
 		bool active;
 		bool highpass;
 		bool custom;
@@ -86,18 +86,18 @@ struct GRDFILTER_CTRL {
 		int mode;	/*-1 0 +1 */
 		struct GMT_GRID *W;
 	} F;
-	struct GRDFILT_G {	/* -G<file> */
+	struct GRDFILTER_G {	/* -G<file> */
 		bool active;
 		char *file;
 	} G;
-	struct GRDFILT_N {	/* -Np|i|r */
+	struct GRDFILTER_N {	/* -Np|i|r */
 		bool active;
 		unsigned int mode;	/* 0 is default (i), 1 is replace (r), 2 is preserve (p) */
 	} N;
-	struct GRDFILT_T {	/* -T */
+	struct GRDFILTER_T {	/* -T */
 		bool active;
 	} T;
-	struct GRDFILT_z {	/* -z */
+	struct GRDFILTER_z {	/* -z */
 		bool active;
 		int n_threads;
 	} z;
@@ -215,7 +215,7 @@ struct THREAD_STRUCT {
 
 GMT_LOCAL void grdfilter_threaded_function (struct THREAD_STRUCT *t);
 
-GMT_LOCAL void *New_Ctrl (struct GMT_CTRL *GMT) {	/* Allocate and initialize a new control structure */
+static void *New_Ctrl (struct GMT_CTRL *GMT) {	/* Allocate and initialize a new control structure */
 	struct GRDFILTER_CTRL *C;
 
 	C = gmt_M_memory (GMT, NULL, 1, struct GRDFILTER_CTRL);
@@ -229,7 +229,7 @@ GMT_LOCAL void *New_Ctrl (struct GMT_CTRL *GMT) {	/* Allocate and initialize a n
 	return (C);
 }
 
-GMT_LOCAL void Free_Ctrl (struct GMT_CTRL *GMT, struct GRDFILTER_CTRL *C) {	/* Deallocate control structure */
+static void Free_Ctrl (struct GMT_CTRL *GMT, struct GRDFILTER_CTRL *C) {	/* Deallocate control structure */
 	if (!C) return;
 	gmt_M_str_free (C->In.file);
 	gmt_M_str_free (C->F.file);
@@ -581,7 +581,7 @@ GMT_LOCAL struct GMT_GRID *init_area_weights (struct GMT_CTRL *GMT, struct GMT_G
 	return (A);
 }
 
-GMT_LOCAL int usage (struct GMTAPI_CTRL *API, int level) {
+static int usage (struct GMTAPI_CTRL *API, int level) {
 	const char *name = gmt_show_name_and_purpose (API, THIS_MODULE_LIB, THIS_MODULE_CLASSIC_NAME, THIS_MODULE_PURPOSE);
 	if (level == GMT_MODULE_PURPOSE) return (GMT_NOERROR);
 	GMT_Message (API, GMT_TIME_NONE, "usage: %s <ingrid> -D<distance_flag> -F<type><filter_width>[/<width2>][<modifiers>] -G<outgrid>\n", name);
@@ -692,7 +692,7 @@ GMT_LOCAL double grdfilter_get_filter_width (struct GMTAPI_CTRL *API, struct GRD
 	return (width);
 }
 
-GMT_LOCAL int parse (struct GMT_CTRL *GMT, struct GRDFILTER_CTRL *Ctrl, struct GMT_OPTION *options) {
+static int parse (struct GMT_CTRL *GMT, struct GRDFILTER_CTRL *Ctrl, struct GMT_OPTION *options) {
 	/* This parses the options provided to grdfilter and sets parameters in Ctrl.
 	 * Note Ctrl has already been initialized and non-zero default values set.
 	 * Any GMT common options will override values set previously by other commands.

@@ -31,31 +31,31 @@
 
 struct POLESPOTTER_CTRL {	/* All control options for this program (except common args) */
 	/* active is true if the option has been activated */
-	struct A {	/* -A<abyssalhilefile> */
+	struct POLESPOTTER_A {	/* -A<abyssalhilefile> */
 		bool active;
 		char *file;
 		double weight;
 	} A;
-	struct D {	/* -D<spacing> */
+	struct POLESPOTTER_D {	/* -D<spacing> */
 		bool active;
 		double length;
 	} D;
-	struct E {	/* -Ea|f<sigma> */
+	struct POLESPOTTER_E {	/* -Ea|f<sigma> */
 		bool active;
 	} E;
-	struct F {	/* -F<fzfile> */
+	struct POLESPOTTER_F {	/* -F<fzfile> */
 		bool active;
 		char *file;
 		double weight;
 	} F;
-	struct G {	/* -Goutfile */
+	struct POLESPOTTER_G {	/* -Goutfile */
 		bool active;
 		char *file;
 	} G;
-	struct N {	/* -N */
+	struct POLESPOTTER_N {	/* -N */
 		bool active;
 	} N;
-	struct S {	/* -Ss|l|p[<modifiers>] */
+	struct POLESPOTTER_S {	/* -Ss|l|p[<modifiers>] */
 		bool active;
 		bool dump_lines;
 		bool dump_crossings;
@@ -71,7 +71,7 @@ enum spotter_modes {
 	SPOTTER_SCAN_LINES = 1,
 	SPOTTER_SCAN_POLES = 2};
 
-GMT_LOCAL void *New_Ctrl (struct GMT_CTRL *GMT) {	/* Allocate and initialize a new control structure */
+static void *New_Ctrl (struct GMT_CTRL *GMT) {	/* Allocate and initialize a new control structure */
 	struct POLESPOTTER_CTRL *C;
 
 	C = gmt_M_memory (GMT, NULL, 1, struct POLESPOTTER_CTRL);
@@ -82,7 +82,7 @@ GMT_LOCAL void *New_Ctrl (struct GMT_CTRL *GMT) {	/* Allocate and initialize a n
 	return (C);
 }
 
-GMT_LOCAL void Free_Ctrl (struct GMT_CTRL *GMT, struct POLESPOTTER_CTRL *C) {	/* Deallocate control structure */
+static void Free_Ctrl (struct GMT_CTRL *GMT, struct POLESPOTTER_CTRL *C) {	/* Deallocate control structure */
 	if (!C) return;
 	gmt_M_str_free (C->A.file);
 	gmt_M_str_free (C->F.file);
@@ -91,7 +91,7 @@ GMT_LOCAL void Free_Ctrl (struct GMT_CTRL *GMT, struct POLESPOTTER_CTRL *C) {	/*
 	gmt_M_free (GMT, C);
 }
 
-GMT_LOCAL int usage (struct GMTAPI_CTRL *API, int level) {
+static int usage (struct GMTAPI_CTRL *API, int level) {
 	const char *name = gmt_show_name_and_purpose (API, THIS_MODULE_LIB, THIS_MODULE_CLASSIC_NAME, THIS_MODULE_PURPOSE);
 	if (level == GMT_MODULE_PURPOSE) return (GMT_NOERROR);
 	GMT_Message (API, GMT_TIME_NONE, "usage: %s [%s] [-G<polegrid>] [%s]\n", name, GMT_Id_OPT, GMT_Rgeo_OPT);
@@ -124,7 +124,7 @@ GMT_LOCAL int usage (struct GMTAPI_CTRL *API, int level) {
 	return (GMT_MODULE_USAGE);
 }
 
-GMT_LOCAL int parse (struct GMT_CTRL *GMT, struct POLESPOTTER_CTRL *Ctrl, struct GMT_OPTION *options) {
+static int parse (struct GMT_CTRL *GMT, struct POLESPOTTER_CTRL *Ctrl, struct GMT_OPTION *options) {
 	/* This parses the options provided to polespotter and sets parameters in CTRL.
 	 * Any GMT common options will override values set previously by other commands.
 	 * It also replaces any file names specified as input or output with the data ID

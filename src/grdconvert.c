@@ -33,20 +33,20 @@
 #define THIS_MODULE_OPTIONS "-RVf"
 
 struct GRDCONVERT_CTRL {
-	struct In {
+	struct GRDCONVERT_In {
 		bool active;
 		char *file;
 	} In;
-	struct G {	/* -G<outgrid> */
+	struct GRDCONVERT_G {	/* -G<outgrid> */
 		bool active;
 		char *file;
 	} G;
-	struct N {	/* -N */
+	struct GRDCONVERT_N {	/* -N */
 		bool active;
 	} N;
 };
 
-GMT_LOCAL void *New_Ctrl (struct GMT_CTRL *GMT) {	/* Allocate and initialize a new control structure */
+static void *New_Ctrl (struct GMT_CTRL *GMT) {	/* Allocate and initialize a new control structure */
 	struct GRDCONVERT_CTRL *C;
 
 	C = gmt_M_memory (GMT, NULL, 1, struct GRDCONVERT_CTRL);
@@ -56,14 +56,14 @@ GMT_LOCAL void *New_Ctrl (struct GMT_CTRL *GMT) {	/* Allocate and initialize a n
 	return (C);
 }
 
-GMT_LOCAL void Free_Ctrl (struct GMT_CTRL *GMT, struct GRDCONVERT_CTRL *C) {	/* Deallocate control structure */
+static void Free_Ctrl (struct GMT_CTRL *GMT, struct GRDCONVERT_CTRL *C) {	/* Deallocate control structure */
 	if (!C) return;
 	gmt_M_str_free (C->In.file);
 	gmt_M_str_free (C->G.file);
 	gmt_M_free (GMT, C);
 }
 
-GMT_LOCAL int usage (struct GMTAPI_CTRL *API, int level) {
+static int usage (struct GMTAPI_CTRL *API, int level) {
 	int i;
 	char **grdformats = gmt_grdformats_sorted (API->GMT);
 
@@ -97,7 +97,7 @@ GMT_LOCAL int usage (struct GMTAPI_CTRL *API, int level) {
 	return (GMT_MODULE_USAGE);
 }
 
-GMT_LOCAL int parse (struct GMT_CTRL *GMT, struct GRDCONVERT_CTRL *Ctrl, struct GMT_OPTION *options) {
+static int parse (struct GMT_CTRL *GMT, struct GRDCONVERT_CTRL *Ctrl, struct GMT_OPTION *options) {
 	/* This parses the options provided to grdconvert and sets parameters in CTRL.
 	 * Any GMT common options will override values set previously by other commands.
 	 * It also replaces any file names specified as input or output with the data ID
@@ -286,4 +286,15 @@ EXTERN_MSC int GMT_grdconvert (void *V_API, int mode, void *args) {
 		Return (API->error);
 
 	Return (GMT_NOERROR);
+}
+
+EXTERN_MSC int GMT_grdreformat (void *V_API, int mode, void *args) {
+	/* This was the GMT5.1 name */
+	struct GMTAPI_CTRL *API = gmt_get_api_ptr (V_API);	/* Cast from void to GMTAPI_CTRL pointer */
+	if (gmt_M_compat_check (API->GMT, 5)) {
+		GMT_Report (API, GMT_MSG_COMPAT, "Module grdreformat is deprecated; use grdconvert.\n");
+		return (GMT_Call_Module (API, "grdconvert", mode, args));
+	}
+	GMT_Report (API, GMT_MSG_ERROR, "Shared GMT module not found: grdreformat\n");
+	return (GMT_NOT_A_VALID_MODULE);
 }

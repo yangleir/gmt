@@ -52,40 +52,40 @@ enum Mask_Modes {
 };
 
 struct PSMASK_CTRL {
-	struct C {	/* -C */
+	struct PSMASK_C {	/* -C */
 		bool active;
 	} C;
-	struct D {	/* -D<dumpfile> */
+	struct PSMASK_D {	/* -D<dumpfile> */
 		bool active;
 		char *file;
 	} D;
-	struct F {	/* -F<way> */
+	struct PSMASK_F {	/* -F<way> */
 		bool active;
 		int value;
 	} F;
-	struct G {	/* -G<fill> */
+	struct PSMASK_G {	/* -G<fill> */
 		bool active;
 		struct GMT_FILL fill;
 	} G;
-	struct L {	/* -L<file>[+i|o] */
+	struct PSMASK_L {	/* -L<file>[+i|o] */
 		bool active;
 		int mode;	/* -1 = set inside node to NaN (+i), 0 as is, +1 set outside node to NaN (+o) */
 		char *file;
 	} L;
-	struct N {	/* -N */
+	struct PSMASK_N {	/* -N */
 		bool active;
 	} N;
-	struct Q {	/* -Q<cut> */
+	struct PSMASK_Q {	/* -Q<cut> */
 		bool active;
 		unsigned int min;
 	} Q;
-	struct S {	/* -S[-|=|+]<radius>[d|e|f|k|m|M|n|s] */
+	struct PSMASK_S {	/* -S[-|=|+]<radius>[d|e|f|k|m|M|n|s] */
 		bool active;
 		int mode;	/* May be negative */
 		double radius;
 		char unit;
 	} S;
-	struct T {	/* -T */
+	struct PSMASK_T {	/* -T */
 		bool active;
 	} T;
 };
@@ -411,7 +411,7 @@ GMT_LOCAL void psmask_shrink_clip_contours (double *x, double *y, uint64_t np, d
 	}
 }
 
-GMT_LOCAL void *New_Ctrl (struct GMT_CTRL *GMT) {	/* Allocate and initialize a new control structure */
+static void *New_Ctrl (struct GMT_CTRL *GMT) {	/* Allocate and initialize a new control structure */
 	struct PSMASK_CTRL *C = NULL;
 
 	C = gmt_M_memory (GMT, NULL, 1, struct PSMASK_CTRL);
@@ -422,14 +422,14 @@ GMT_LOCAL void *New_Ctrl (struct GMT_CTRL *GMT) {	/* Allocate and initialize a n
 	return (C);
 }
 
-GMT_LOCAL void Free_Ctrl (struct GMT_CTRL *GMT, struct PSMASK_CTRL *C) {	/* Deallocate control structure */
+static void Free_Ctrl (struct GMT_CTRL *GMT, struct PSMASK_CTRL *C) {	/* Deallocate control structure */
 	if (!C) return;
 	gmt_M_str_free (C->D.file);
 	gmt_M_str_free (C->L.file);
 	gmt_M_free (GMT, C);
 }
 
-GMT_LOCAL int usage (struct GMTAPI_CTRL *API, int level) {
+static int usage (struct GMTAPI_CTRL *API, int level) {
 	const char *name = gmt_show_name_and_purpose (API, THIS_MODULE_LIB, THIS_MODULE_CLASSIC_NAME, THIS_MODULE_PURPOSE);
 	if (level == GMT_MODULE_PURPOSE) return (GMT_NOERROR);
 	GMT_Message (API, GMT_TIME_NONE, "usage: %s <table> %s %s\n", name, GMT_I_OPT, GMT_J_OPT);
@@ -473,7 +473,7 @@ GMT_LOCAL int usage (struct GMTAPI_CTRL *API, int level) {
 	return (GMT_MODULE_USAGE);
 }
 
-GMT_LOCAL int parse (struct GMT_CTRL *GMT, struct PSMASK_CTRL *Ctrl, struct GMT_OPTION *options) {
+static int parse (struct GMT_CTRL *GMT, struct PSMASK_CTRL *Ctrl, struct GMT_OPTION *options) {
 	/* This parses the options provided to psmask and sets parameters in Ctrl.
 	 * Note Ctrl has already been initialized and non-zero default values set.
 	 * Any GMT common options will override values set previously by other commands.
@@ -754,6 +754,11 @@ EXTERN_MSC int GMT_psmask (void *V_API, int mode, void *args) {
 				if (gmt_M_rec_is_eof (GMT)) 		/* Reached end of file */
 					break;
 			}
+		if (In->data == NULL) {
+			gmt_quit_bad_record (API, In);
+			Return (API->error);
+		}
+
 			in = In->data;	/* Only need to process numerical part here */
 
 			if (gmt_M_y_is_outside (GMT, in[GMT_Y], Grid->header->wesn[YLO], Grid->header->wesn[YHI])) continue;	/* Outside y-range */

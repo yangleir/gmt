@@ -49,33 +49,33 @@ EXTERN_MSC unsigned int gmtlib_log_array (struct GMT_CTRL *GMT, double min, doub
 #define GMT_INFO_TABLEINFO	2
 #define GMT_INFO_DATAINFO	3
 
-struct MINMAX_CTRL {	/* All control options for this program (except common args) */
+struct GMTINFO_CTRL {	/* All control options for this program (except common args) */
 	/* active is true if the option has been activated */
 	unsigned int n_files;
-	struct A {	/* -A */
+	struct GMTINFO_A {	/* -A */
 		bool active;
 		unsigned int mode;	/* 0 reports range for all tables, 1 is per table, 2 is per segment */
 	} A;
-	struct C {	/* -C */
+	struct GMTINFO_C {	/* -C */
 		bool active;
 	} C;
-	struct D {	/* -D[dx[/dy[/<dz>..]]] */
+	struct GMTINFO_D {	/* -D[dx[/dy[/<dz>..]]] */
 		bool active;
 		unsigned int ncol;
 		unsigned int mode;	/* 0 means center, 1 means use dx granularity */
 		double inc[GMT_MAX_COLUMNS];
 	} D;
-	struct E {	/* -E<L|l|H|h>[<col>] */
+	struct GMTINFO_E {	/* -E<L|l|H|h>[<col>] */
 		bool active;
 		bool abs;
 		int mode;	/* -1, 0, +1 */
 		uint64_t col;
 	} E;
-	struct F {	/* -F<i|d|t> */
+	struct GMTINFO_F {	/* -F<i|d|t> */
 		bool active;
 		int mode;	/*  */
 	} F;
-	struct I {	/* -I[b|e|f|p|s]dx[/dy[/<dz>..]][[+e|r|R<incs>]] */
+	struct GMTINFO_I {	/* -I[b|e|f|p|s]dx[/dy[/<dz>..]][[+e|r|R<incs>]] */
 		bool active;
 		unsigned int extend;
 		unsigned int ncol;
@@ -83,14 +83,14 @@ struct MINMAX_CTRL {	/* All control options for this program (except common args
 		double inc[GMT_MAX_COLUMNS];
 		double delta[4];
 	} I;
-	struct L {	/* -L */
+	struct GMTINFO_L {	/* -L */
 		bool active;
 	} L;
-	struct S {	/* -S[x|y] */
+	struct GMTINFO_S {	/* -S[x|y] */
 		bool active;
 		bool xbar, ybar;
 	} S;
-	struct T {	/* -T<dz>[/<col>] */
+	struct GMTINFO_T {	/* -T<dz>[/<col>] */
 		bool active;
 		double inc;
 		unsigned int col;
@@ -107,22 +107,22 @@ GMT_LOCAL int gmtinfo_strip_blanks_and_output (struct GMT_CTRL *GMT, char *text,
 	return (k);	/* This is the position in text that we should start reporting from */
 }
 
-GMT_LOCAL void *New_Ctrl (struct GMT_CTRL *GMT) {	/* Allocate and initialize a new control structure */
-	struct MINMAX_CTRL *C = NULL;
+static void *New_Ctrl (struct GMT_CTRL *GMT) {	/* Allocate and initialize a new control structure */
+	struct GMTINFO_CTRL *C = NULL;
 
-	C = gmt_M_memory (GMT, NULL, 1, struct MINMAX_CTRL);
+	C = gmt_M_memory (GMT, NULL, 1, struct GMTINFO_CTRL);
 
 	/* Initialize values whose defaults are not 0/false/NULL */
 	C->E.col = UINT_MAX;	/* Meaning not set */
 	return (C);
 }
 
-GMT_LOCAL void Free_Ctrl (struct GMT_CTRL *GMT, struct MINMAX_CTRL *C) {	/* Deallocate control structure */
+static void Free_Ctrl (struct GMT_CTRL *GMT, struct GMTINFO_CTRL *C) {	/* Deallocate control structure */
 	if (!C) return;
 	gmt_M_free (GMT, C);
 }
 
-GMT_LOCAL int usage (struct GMTAPI_CTRL *API, int level) {
+static int usage (struct GMTAPI_CTRL *API, int level) {
 	const char *name = gmt_show_name_and_purpose (API, THIS_MODULE_LIB, THIS_MODULE_CLASSIC_NAME, THIS_MODULE_PURPOSE);
 	if (level == GMT_MODULE_PURPOSE) return (GMT_NOERROR);
 	GMT_Message (API, GMT_TIME_NONE, "usage: %s [<table>] [-Aa|f|s] [-C] [-D[<dx>[/<dy>]] [-E<L|l|H|h>[<col>]] [-Fi|d|t] [-I[b|e|f|p|s]<dx>[/<dy>[/<dz>..][+e|r|R<incs>]]\n", name);
@@ -173,7 +173,7 @@ GMT_LOCAL int usage (struct GMTAPI_CTRL *API, int level) {
 	return (GMT_MODULE_USAGE);
 }
 
-GMT_LOCAL int parse (struct GMT_CTRL *GMT, struct MINMAX_CTRL *Ctrl, struct GMT_OPTION *options) {
+static int parse (struct GMT_CTRL *GMT, struct GMTINFO_CTRL *Ctrl, struct GMT_OPTION *options) {
 	/* This parses the options provided to gmtinfo and sets parameters in CTRL.
 	 * Any GMT common options will override values set previously by other commands.
 	 * It also replaces any file names specified as input or output with the data ID
@@ -384,7 +384,7 @@ EXTERN_MSC int GMT_gmtinfo (void *V_API, int mode, void *args) {
 
 	struct GMT_QUAD *Q = NULL;
 	struct GMT_RANGE **Z = NULL;
-	struct MINMAX_CTRL *Ctrl = NULL;
+	struct GMTINFO_CTRL *Ctrl = NULL;
 	struct GMT_RECORD *In = NULL, *Out = NULL;
 	struct GMT_CTRL *GMT = NULL, *GMT_cpy = NULL;
 	struct GMT_OPTION *options = NULL;
@@ -765,10 +765,13 @@ EXTERN_MSC int GMT_gmtinfo (void *V_API, int mode, void *args) {
 		if (gmt_M_rec_is_file_break (GMT)) continue;
 
 		/* We get here once we have read a data record */
-		if ((in = In->data) == NULL) {	/* Only need to process numerical part here */
-			GMT_Report (API, GMT_MSG_ERROR, "No data columns to work with - exiting\n");
-			Return (GMT_DIM_TOO_SMALL);
+		if (In->data == NULL) {
+			gmt_quit_bad_record (API, In);
+			Return (API->error);
 		}
+
+		in = In->data;
+
 		if (first_data_record) {	/* First time we read data, we must allocate arrays based on the number of columns */
 
 			if (Ctrl->C.active) {	/* Must set output column types since each input col will produce two output cols. */
@@ -911,4 +914,15 @@ EXTERN_MSC int GMT_gmtinfo (void *V_API, int mode, void *args) {
 	for (col = 0; col < ncol; col++) gmt_M_free (GMT, Z[col]);
 
 	Return (GMT_NOERROR);
+}
+
+EXTERN_MSC int GMT_minmax (void *V_API, int mode, void *args) {
+	/* This was the GMT4 name */
+	struct GMTAPI_CTRL *API = gmt_get_api_ptr (V_API);	/* Cast from void to GMTAPI_CTRL pointer */
+	if (gmt_M_compat_check (API->GMT, 4)) {
+		GMT_Report (API, GMT_MSG_COMPAT, "Module minmax is deprecated; use gmtinfo.\n");
+		return (GMT_Call_Module (API, "gmtinfo", mode, args));
+	}
+	GMT_Report (API, GMT_MSG_ERROR, "Shared GMT module not found: minmax\n");
+	return (GMT_NOT_A_VALID_MODULE);
 }

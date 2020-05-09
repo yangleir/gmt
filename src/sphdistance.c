@@ -51,32 +51,32 @@ enum sphdist_modes {
 	SPHD_VALUES = 2};
 
 struct SPHDISTANCE_CTRL {
-	struct A {	/* -A[m|p|x|y|step] */
+	struct SPHDISTANCE_A {	/* -A[m|p|x|y|step] */
 		bool active;
 		unsigned int mode;
 		double step;
 	} A;
-	struct C {	/* -C */
+	struct SPHDISTANCE_C {	/* -C */
 		bool active;
 	} C;
-	struct E {	/* -Ed|n|z[<dist>] */
+	struct SPHDISTANCE_E {	/* -Ed|n|z[<dist>] */
 		bool active;
 		unsigned int mode;
 		double dist;
 	} E;
-	struct G {	/* -G<maskfile> */
+	struct SPHDISTANCE_G {	/* -G<maskfile> */
 		bool active;
 		char *file;
 	} G;
-	struct L {	/* -L<unit>] */
+	struct SPHDISTANCE_L {	/* -L<unit>] */
 		bool active;
 		char unit;
 	} L;
-	struct N {	/* -N */
+	struct SPHDISTANCE_N {	/* -N */
 		bool active;
 		char *file;
 	} N;
-	struct Q {	/* -Q */
+	struct SPHDISTANCE_Q {	/* -Q */
 		bool active;
 		char *file;
 	} Q;
@@ -115,7 +115,7 @@ GMT_LOCAL void sphdistance_prepare_polygon (struct GMT_CTRL *GMT, struct GMT_DAT
 	}
 }
 
-GMT_LOCAL void *New_Ctrl (struct GMT_CTRL *GMT) {	/* Allocate and initialize a new control structure */
+static void *New_Ctrl (struct GMT_CTRL *GMT) {	/* Allocate and initialize a new control structure */
 	struct SPHDISTANCE_CTRL *C;
 
 	C = gmt_M_memory (GMT, NULL, 1, struct SPHDISTANCE_CTRL);
@@ -124,7 +124,7 @@ GMT_LOCAL void *New_Ctrl (struct GMT_CTRL *GMT) {	/* Allocate and initialize a n
 	return (C);
 }
 
-GMT_LOCAL void Free_Ctrl (struct GMT_CTRL *GMT, struct SPHDISTANCE_CTRL *C) {	/* Deallocate control structure */
+static void Free_Ctrl (struct GMT_CTRL *GMT, struct SPHDISTANCE_CTRL *C) {	/* Deallocate control structure */
 	if (!C) return;
 	gmt_M_str_free (C->G.file);
 	gmt_M_str_free (C->N.file);
@@ -132,7 +132,7 @@ GMT_LOCAL void Free_Ctrl (struct GMT_CTRL *GMT, struct SPHDISTANCE_CTRL *C) {	/*
 	gmt_M_free (GMT, C);
 }
 
-GMT_LOCAL int usage (struct GMTAPI_CTRL *API, int level) {
+static int usage (struct GMTAPI_CTRL *API, int level) {
 	const char *name = gmt_show_name_and_purpose (API, THIS_MODULE_LIB, THIS_MODULE_CLASSIC_NAME, THIS_MODULE_PURPOSE);
 	if (level == GMT_MODULE_PURPOSE) return (GMT_NOERROR);
 	GMT_Message (API, GMT_TIME_NONE, "\t==> The hard work is done by algorithms 772 (STRIPACK) & 773 (SSRFPACK) by R. J. Renka [1997] <==\n\n");
@@ -168,7 +168,7 @@ GMT_LOCAL int usage (struct GMTAPI_CTRL *API, int level) {
 	return (GMT_MODULE_USAGE);
 }
 
-GMT_LOCAL int parse (struct GMT_CTRL *GMT, struct SPHDISTANCE_CTRL *Ctrl, struct GMT_OPTION *options) {
+static int parse (struct GMT_CTRL *GMT, struct SPHDISTANCE_CTRL *Ctrl, struct GMT_OPTION *options) {
 	/* This parses the options provided to sphdistance and sets parameters in CTRL.
 	 * Any GMT common options will override values set previously by other commands.
 	 * It also replaces any file names specified as input or output with the data ID
@@ -401,6 +401,11 @@ EXTERN_MSC int GMT_sphdistance (void *V_API, int mode, void *args) {
 				else if (gmt_M_rec_is_segment_header (GMT))			/* Parse segment headers */
 					first = true;
 				continue;	/* Go back and read the next record */
+			}
+
+			if (In->data == NULL) {
+				gmt_quit_bad_record (API, In);
+				Return (API->error);
 			}
 
 			/* Data record to process - avoid duplicate points as gmt_stripack_lists cannot handle that */

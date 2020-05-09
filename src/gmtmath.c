@@ -82,43 +82,43 @@
 
 struct GMTMATH_CTRL {	/* All control options for this program (except common args) */
 	/* active is true if the option has been activated */
-	struct Out {	/* = <filename> */
+	struct GMTMATH_Out {	/* = <filename> */
 		bool active;
 		char *file;
 	} Out;
-	struct A {	/* -A[-]<t_f(t).d>[+e][+w|s] */
+	struct GMTMATH_A {	/* -A[-]<t_f(t).d>[+e][+w|s] */
 		bool active;
 		bool null;
 		unsigned int e_mode;	/* 0 save coefficients, 1 save predictions and residuals */
 		unsigned int w_mode;	/* 0 no weights, 1 = got weights, 2 = got sigmas */
 		char *file;
 	} A;
-	struct C {	/* -C<cols> */
+	struct GMTMATH_C {	/* -C<cols> */
 		bool active;
 		bool *cols;
 	} C;
-	struct E {	/* -E<min_eigenvalue> */
+	struct GMTMATH_E {	/* -E<min_eigenvalue> */
 		bool active;
 		double eigen;
 	} E;
-	struct I {	/* -I */
+	struct GMTMATH_I {	/* -I */
 		bool active;
 	} I;
-	struct L {	/* -L */
+	struct GMTMATH_L {	/* -L */
 		bool active;
 	} L;
-	struct N {	/* -N<n_col>/<t_col> */
+	struct GMTMATH_N {	/* -N<n_col>/<t_col> */
 		bool active;
 		uint64_t ncol, tcol;
 	} N;
-	struct Q {	/* -Q */
+	struct GMTMATH_Q {	/* -Q */
 		bool active;
 	} Q;
-	struct S {	/* -S[f|l] */
+	struct GMTMATH_S {	/* -S[f|l] */
 		bool active;
 		int mode;	/* -1 or +1 */
 	} S;
-	struct T {	/* -T[<tmin/tmax/t_inc>[+]] | -T<file> */
+	struct GMTMATH_T {	/* -T[<tmin/tmax/t_inc>[+]] | -T<file> */
 		bool active;
 		bool notime;
 		struct GMT_ARRAY T;
@@ -152,7 +152,7 @@ struct GMTMATH_STORED {
 	struct GMTMATH_STACK stored;
 };
 
-GMT_LOCAL void *New_Ctrl (struct GMT_CTRL *GMT) {	/* Allocate and initialize a new control structure */
+static void *New_Ctrl (struct GMT_CTRL *GMT) {	/* Allocate and initialize a new control structure */
 	struct GMTMATH_CTRL *C = gmt_M_memory (GMT, NULL, 1, struct GMTMATH_CTRL);
 
 	/* Initialize values whose defaults are not 0/false/NULL */
@@ -164,7 +164,7 @@ GMT_LOCAL void *New_Ctrl (struct GMT_CTRL *GMT) {	/* Allocate and initialize a n
 	return (C);
 }
 
-GMT_LOCAL void Free_Ctrl (struct GMT_CTRL *GMT, struct GMTMATH_CTRL *C) {	/* Deallocate control structure */
+static void Free_Ctrl (struct GMT_CTRL *GMT, struct GMTMATH_CTRL *C) {	/* Deallocate control structure */
 	if (!C) return;
 	gmt_M_str_free (C->Out.file);
 	gmt_M_str_free (C->A.file);
@@ -467,7 +467,7 @@ GMT_LOCAL bool gmtmath_same_domain (struct GMT_DATASET *A, uint64_t t_col, struc
 	return (true);
 }
 
-GMT_LOCAL int usage (struct GMTAPI_CTRL *API, int level) {
+static int usage (struct GMTAPI_CTRL *API, int level) {
 	const char *name = gmt_show_name_and_purpose (API, THIS_MODULE_LIB, THIS_MODULE_CLASSIC_NAME, THIS_MODULE_PURPOSE);
 	if (level == GMT_MODULE_PURPOSE) return (GMT_NOERROR);
 	GMT_Message (API, GMT_TIME_NONE, "usage: %s [-A<ftable>[+e][+r][+s|w]] [-C<cols>] [-E<eigen>] [-I] [-L] [-N<n_col>[/<t_col>]] [-Q] [-S[f|l]]\n", name);
@@ -728,7 +728,7 @@ GMT_LOCAL int usage (struct GMTAPI_CTRL *API, int level) {
 	return (GMT_MODULE_USAGE);
 }
 
-GMT_LOCAL int parse (struct GMT_CTRL *GMT, struct GMTMATH_CTRL *Ctrl, struct GMT_OPTION *options) {
+static int parse (struct GMT_CTRL *GMT, struct GMTMATH_CTRL *Ctrl, struct GMT_OPTION *options) {
 	/* This parses the options provided to gmtmath and sets parameters in CTRL.
 	 * Any GMT common options will override values set previously by other commands.
 	 * It also replaces any file names specified as input or output with the data ID
@@ -5599,8 +5599,7 @@ GMT_LOCAL int gmtmath_ROOTS (struct GMT_CTRL *GMT, struct GMTMATH_INFO *info, st
 
 #define GMTMATH_N_OPERATORS 197
 
-GMT_LOCAL void gmtmath_init (int (*ops[])(struct GMT_CTRL *, struct GMTMATH_INFO *, struct GMTMATH_STACK **S, unsigned int, unsigned int), unsigned int n_args[], unsigned int n_out[])
-{
+GMT_LOCAL void gmtmath_init (int (*ops[])(struct GMT_CTRL *, struct GMTMATH_INFO *, struct GMTMATH_STACK **S, unsigned int, unsigned int), unsigned int n_args[], unsigned int n_out[]) {
 	/* Operator function	# of operands	# of outputs */
 
 	ops[0] = gmtmath_ABS;	n_args[0] = 1;	n_out[0] = 1;
@@ -5934,8 +5933,8 @@ GMT_LOCAL char *gmtmath_setlabel (struct GMT_CTRL *GMT, char *arg) {
 	return (label);
 }
 
-GMT_LOCAL void gmtmath_backwards_fixing (struct GMT_CTRL *GMT, char **arg)
-{	/* Handle backwards compatible operator names */
+GMT_LOCAL void gmtmath_backwards_fixing (struct GMT_CTRL *GMT, char **arg) {
+	/* Handle backwards compatible operator names */
 	char *t = NULL, old[GMT_LEN16] = {""};
 	if (!gmt_M_compat_check (GMT, 6)) return;	/* No checking so we may fail later */
 	if (!strcmp (*arg, "CHIDIST"))      {strncpy (old, *arg, GMT_LEN16-1); gmt_M_str_free (*arg); *arg = t = strdup ("CHI2CDF");  }

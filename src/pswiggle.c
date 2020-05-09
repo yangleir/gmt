@@ -44,52 +44,52 @@
 #define PSWIGGLE_NEG	1
 
 struct PSWIGGLE_CTRL {
-	struct A {	/* -A[<azimuth>] */
+	struct PSWIGGLE_A {	/* -A[<azimuth>] */
 		bool active;
 		unsigned int mode;
 		double value;
 	} A;
-	struct C {	/* -C<center> */
+	struct PSWIGGLE_C {	/* -C<center> */
 		bool active;
 		double value;
 	} C;
-	struct D {	/* -D[g|j|J|n|x]<refpoint>+w<length>[+a][+j<justify>][+o<dx>[/<dy>]][+l<label>] */
+	struct PSWIGGLE_D {	/* -D[g|j|J|n|x]<refpoint>+w<length>[+a][+j<justify>][+o<dx>[/<dy>]][+l<label>] */
 		bool active;
 		struct GMT_MAP_SCALE scale;
 	} D;
-	struct F {	/* -F[+c<clearance>][+g<fill>][+i[<off>/][<pen>]][+p[<pen>]][+r[<radius>]][+s[<dx>/<dy>/][<shade>]][+d] */
+	struct PSWIGGLE_F {	/* -F[+c<clearance>][+g<fill>][+i[<off>/][<pen>]][+p[<pen>]][+r[<radius>]][+s[<dx>/<dy>/][<shade>]][+d] */
 		bool active;	/* Panel inside GMT_MAP_SCALE in -D */
 	} F;
-	struct G {	/* -G<fill>[+n][+p] */
+	struct PSWIGGLE_G {	/* -G<fill>[+n][+p] */
 		bool active[2];
 		struct GMT_FILL fill[2];
 	} G;
-	struct I {	/* -I<azimuth> */
+	struct PSWIGGLE_I {	/* -I<azimuth> */
 		bool active;
 		double value;
 	} I;
-	struct S {	/* -S[x]<lon0>/<lat0>/<length>/<units> [Backwards compatibility with GMT 5] */
+	struct PSWIGGLE_S {	/* -S[x]<lon0>/<lat0>/<length>/<units> [Backwards compatibility with GMT 5] */
 		bool active;
 		bool cartesian;
 		double lon, lat, length;
 		char *label;
 	} S;
-	struct T {	/* -T<pen> */
+	struct PSWIGGLE_T {	/* -T<pen> */
 		bool active;
 		struct GMT_PEN pen;
 	} T;
-	struct W {	/* -W<pen> */
+	struct PSWIGGLE_W {	/* -W<pen> */
 		bool active;
 		struct GMT_PEN pen;
 	} W;
-	struct Z {	/* -Z<scale> */
+	struct PSWIGGLE_Z {	/* -Z<scale> */
 		bool active;
 		double scale;
 		char unit;
 	} Z;
 };
 
-GMT_LOCAL void *New_Ctrl (struct GMT_CTRL *GMT) {	/* Allocate and initialize a new control structure */
+static void *New_Ctrl (struct GMT_CTRL *GMT) {	/* Allocate and initialize a new control structure */
 	struct PSWIGGLE_CTRL *C;
 
 	C = gmt_M_memory (GMT, NULL, 1, struct PSWIGGLE_CTRL);
@@ -103,7 +103,7 @@ GMT_LOCAL void *New_Ctrl (struct GMT_CTRL *GMT) {	/* Allocate and initialize a n
 	return (C);
 }
 
-GMT_LOCAL void Free_Ctrl (struct GMT_CTRL *GMT, struct PSWIGGLE_CTRL *C) {	/* Deallocate control structure */
+static void Free_Ctrl (struct GMT_CTRL *GMT, struct PSWIGGLE_CTRL *C) {	/* Deallocate control structure */
 	if (!C) return;
 	if (C->D.scale.refpoint) gmt_free_refpoint (GMT, &C->D.scale.refpoint);
 	gmt_M_free (GMT, C->D.scale.panel);
@@ -212,7 +212,7 @@ GMT_LOCAL void pswiggle_draw_z_scale (struct GMT_CTRL *GMT, struct PSL_CTRL *PSL
 	PSL_plottext (PSL, x0 + off, y0, GMT->current.setting.font_annot[GMT_PRIMARY].size, txt, 0.0, PSL_ML, form);
 }
 
-GMT_LOCAL int usage (struct GMTAPI_CTRL *API, int level) {
+static int usage (struct GMTAPI_CTRL *API, int level) {
 
 	/* This displays the pswiggle synopsis and optionally full usage information */
 
@@ -262,7 +262,7 @@ GMT_LOCAL int usage (struct GMTAPI_CTRL *API, int level) {
 	return (GMT_MODULE_USAGE);
 }
 
-GMT_LOCAL int parse (struct GMT_CTRL *GMT, struct PSWIGGLE_CTRL *Ctrl, struct GMT_OPTION *options) {
+static int parse (struct GMT_CTRL *GMT, struct PSWIGGLE_CTRL *Ctrl, struct GMT_OPTION *options) {
 	/* This parses the options provided to pswiggle and sets parameters in Ctrl.
 	 * Note Ctrl has already been initialized and non-zero default values set.
 	 * Any GMT common options will override values set previously by other commands.

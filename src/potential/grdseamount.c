@@ -60,58 +60,58 @@ struct GMT_MODELTIME {	/* Hold info about modeling time */
 };
 
 struct GRDSEAMOUNT_CTRL {
-	struct A {	/* -A[<out>/<in>] */
+	struct GRDSEAMOUNT_A {	/* -A[<out>/<in>] */
 		bool active;
 		gmt_grdfloat value[2];	/* Inside and outside value for mask */
 	} A;
-	struct C {	/* -C<shape> */
+	struct GRDSEAMOUNT_C {	/* -C<shape> */
 		bool active;
 		unsigned int mode;	/* 0 = Gaussian, 1 = parabola, 2 = cone, 3 = disc */
 	} C;
-	struct D {	/* -De|f|k|M|n|u */
+	struct GRDSEAMOUNT_D {	/* -De|f|k|M|n|u */
 		bool active;
 		char unit;
 	} D;
-	struct E {	/* -E */
+	struct GRDSEAMOUNT_E {	/* -E */
 		bool active;
 	} E;
-	struct F {	/* -F[<flattening>] */
+	struct GRDSEAMOUNT_F {	/* -F[<flattening>] */
 		bool active;
 		unsigned int mode;
 		double value;
 	} F;
-	struct G {	/* -G<output_grdfile> */
+	struct GRDSEAMOUNT_G {	/* -G<output_grdfile> */
 		bool active;
 		char *file;
 	} G;
-	struct L {	/* -L[<hcut>] */
+	struct GRDSEAMOUNT_L {	/* -L[<hcut>] */
 		bool active;
 		unsigned int mode;
 		double value;
 	} L;
-	struct M {	/* -M<outlist> */
+	struct GRDSEAMOUNT_M {	/* -M<outlist> */
 		bool active;
 		char *file;
 	} M;
-	struct N {	/* -N<norm> */
+	struct GRDSEAMOUNT_N {	/* -N<norm> */
 		bool active;
 		double value;
 	} N;
-	struct Q {	/* -Qc|i/g|l */
+	struct GRDSEAMOUNT_Q {	/* -Qc|i/g|l */
 		bool active;
 		unsigned int bmode;
 		unsigned int fmode;
 	} Q;
-	struct S {	/* -S<r_scale> */
+	struct GRDSEAMOUNT_S {	/* -S<r_scale> */
 		bool active;
 		double value;
 	} S;
-	struct T {	/* -T[l]<t0>/<t1>/<d0>|n  */
+	struct GRDSEAMOUNT_T {	/* -T[l]<t0>/<t1>/<d0>|n  */
 		bool active, log;
 		unsigned int n_times;
 		struct GMT_MODELTIME *time;	/* The current sequence of times */
 	} T;
-	struct Z {	/* -Z<base> */
+	struct GRDSEAMOUNT_Z {	/* -Z<base> */
 		bool active;
 		double value;
 	} Z;
@@ -122,7 +122,7 @@ EXTERN_MSC unsigned int gmt_modeltime_array (struct GMT_CTRL *GMT, char *arg, bo
 EXTERN_MSC char *gmt_modeltime_unit (unsigned int u);
 EXTERN_MSC void gmt_modeltime_name (struct GMT_CTRL *GMT, char *file, char *format, struct GMT_MODELTIME *T);
 
-GMT_LOCAL void *New_Ctrl (struct GMT_CTRL *GMT) {	/* Allocate and initialize a new control structure */
+static void *New_Ctrl (struct GMT_CTRL *GMT) {	/* Allocate and initialize a new control structure */
 	struct GRDSEAMOUNT_CTRL *C = NULL;
 
 	C = gmt_M_memory (GMT, NULL, 1, struct GRDSEAMOUNT_CTRL);
@@ -138,7 +138,7 @@ GMT_LOCAL void *New_Ctrl (struct GMT_CTRL *GMT) {	/* Allocate and initialize a n
 	return (C);
 }
 
-GMT_LOCAL void Free_Ctrl (struct GMT_CTRL *GMT, struct GRDSEAMOUNT_CTRL *C) {	/* Deallocate control structure */
+static void Free_Ctrl (struct GMT_CTRL *GMT, struct GRDSEAMOUNT_CTRL *C) {	/* Deallocate control structure */
 	if (!C) return;
 	gmt_M_str_free (C->G.file);
 	gmt_M_str_free (C->M.file);
@@ -146,7 +146,7 @@ GMT_LOCAL void Free_Ctrl (struct GMT_CTRL *GMT, struct GRDSEAMOUNT_CTRL *C) {	/*
 	gmt_M_free (GMT, C);
 }
 
-GMT_LOCAL int usage (struct GMTAPI_CTRL *API, int level) {
+static int usage (struct GMTAPI_CTRL *API, int level) {
 	const char *name = gmt_show_name_and_purpose (API, THIS_MODULE_LIB, THIS_MODULE_CLASSIC_NAME, THIS_MODULE_PURPOSE);
 	if (level == GMT_MODULE_PURPOSE) return (GMT_NOERROR);
 	GMT_Message (API, GMT_TIME_NONE, "usage: %s [infile(s)] -G<outgrid> %s\n\t%s [-A[<out>/<in>]] [-Cc|d|g|p] [-D%s]\n", name, GMT_I_OPT, GMT_Rgeo_OPT, GMT_LEN_UNITS2_DISPLAY);
@@ -199,7 +199,7 @@ GMT_LOCAL int usage (struct GMTAPI_CTRL *API, int level) {
 	return (GMT_MODULE_USAGE);
 }
 
-GMT_LOCAL int parse (struct GMT_CTRL *GMT, struct GRDSEAMOUNT_CTRL *Ctrl, struct GMT_OPTION *options) {
+static int parse (struct GMT_CTRL *GMT, struct GRDSEAMOUNT_CTRL *Ctrl, struct GMT_OPTION *options) {
 	/* This parses the options provided to grdseamount and sets parameters in CTRL.
 	 * Any GMT common options will override values set previously by other commands.
 	 * It also replaces any file names specified as input or output with the data ID

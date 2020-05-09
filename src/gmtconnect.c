@@ -39,27 +39,27 @@
 /* Control structure for gmtconnect */
 
 struct GMTCONNECT_CTRL {
-	struct Out {	/* -> */
+	struct GMTCONNECT_Out {	/* -> */
 		bool active;
 		char *file;
 	} Out;
-	struct C {	/* -C[<file>] */
+	struct GMTCONNECT_C {	/* -C[<file>] */
 		bool active;
 		char *file;	/* File for storing closed polygons */
 	} C;
-	struct D {	/* -D[<file>] */
+	struct GMTCONNECT_D {	/* -D[<file>] */
 		bool active;
 		char *format;
 	} D;
-	struct L {	/* -L[<file>] */
+	struct GMTCONNECT_L {	/* -L[<file>] */
 		bool active;
 		char *file;
 	} L;
-	struct Q {	/* -Q[<file>] */
+	struct GMTCONNECT_Q {	/* -Q[<file>] */
 		bool active;
 		char *file;
 	} Q;
-	struct T {	/* -T[<cutoff>[+s<sdist>]] */
+	struct GMTCONNECT_T {	/* -T[<cutoff>[+s<sdist>]] */
 		bool active[2];
 		int mode;
 		double dist[2];
@@ -75,14 +75,14 @@ struct GMTCONNECT_CTRL {
 #define CLOSED	0
 #define OPEN	1
 
-struct NEAREST {	/* Holds information about the nearest segment to one of the two end of a segment */
+struct GMTCONNECT_NEAREST {	/* Holds information about the nearest segment to one of the two end of a segment */
 	uint64_t id;		/* Running number ID starting at 0 for open segments only */
 	uint64_t orig_id;	/* The original ID before expelling duplicates and closed segments */
 	unsigned int end_order;	/* Index of line-end-point (0 = beginning and 1 = end) that is closest to another line */
 	double dist, next_dist;	/* The nearest and next nearest distance to another segment */
 };
 
-struct LINK {	/* Information on linking segments together basd on end point properties */
+struct GMTCONNECT_LINK {	/* Information on linking segments together basd on end point properties */
 	uint64_t id;		/* Running number ID starting at 0 for open segments only */
 	uint64_t orig_id;	/* The original ID before expelling duplicates and closed segments */
 	uint64_t seg;		/* Original segment number in table */
@@ -91,10 +91,10 @@ struct LINK {	/* Information on linking segments together basd on end point prop
 	bool used;		/* True when we have connected this segment into a longer chain */
 	double x_end[2];	/* The x-coordinates of the two line end-points (0 = beginning and 1 = end) */
 	double y_end[2];	/* The y-coordinates of the two line end-points (0 = beginning and 1 = end) */
-	struct NEAREST nearest[2];	/* The nearest line segment to the two end-points  (0 = beginning and 1 = end) */
+	struct GMTCONNECT_NEAREST nearest[2];	/* The nearest line segment to the two end-points  (0 = beginning and 1 = end) */
 };
 
-GMT_LOCAL void *New_Ctrl (struct GMT_CTRL *GMT) {	/* Allocate and initialize a new control structure */
+static void *New_Ctrl (struct GMT_CTRL *GMT) {	/* Allocate and initialize a new control structure */
 	struct GMTCONNECT_CTRL *C = gmt_M_memory (GMT, NULL, 1, struct GMTCONNECT_CTRL);
 
 	/* Initialize values whose defaults are not 0/false/NULL */
@@ -104,7 +104,7 @@ GMT_LOCAL void *New_Ctrl (struct GMT_CTRL *GMT) {	/* Allocate and initialize a n
 	return (C);
 }
 
-GMT_LOCAL void Free_Ctrl (struct GMT_CTRL *GMT, struct GMTCONNECT_CTRL *C) {	/* Deallocate control structure */
+static void Free_Ctrl (struct GMT_CTRL *GMT, struct GMTCONNECT_CTRL *C) {	/* Deallocate control structure */
 	if (!C) return;
 	gmt_M_str_free (C->Out.file);
 	gmt_M_str_free (C->C.file);
@@ -114,7 +114,7 @@ GMT_LOCAL void Free_Ctrl (struct GMT_CTRL *GMT, struct GMTCONNECT_CTRL *C) {	/* 
 	gmt_M_free (GMT, C);
 }
 
-GMT_LOCAL int usage (struct GMTAPI_CTRL *API, int level) {
+static int usage (struct GMTAPI_CTRL *API, int level) {
 	const char *name = gmt_show_name_and_purpose (API, THIS_MODULE_LIB, THIS_MODULE_CLASSIC_NAME, THIS_MODULE_PURPOSE);
 	if (level == GMT_MODULE_PURPOSE) return (GMT_NOERROR);
 	GMT_Message (API, GMT_TIME_NONE, "usage: %s [<table>] [-C<closedfile>] [-D[<template>]] [-L[<linkfile>]] [-Q<listfile>]\n", name);
@@ -147,7 +147,7 @@ GMT_LOCAL int usage (struct GMTAPI_CTRL *API, int level) {
 	return (GMT_MODULE_USAGE);
 }
 
-GMT_LOCAL int parse (struct GMT_CTRL *GMT, struct GMTCONNECT_CTRL *Ctrl, struct GMT_OPTION *options) {
+static int parse (struct GMT_CTRL *GMT, struct GMTCONNECT_CTRL *Ctrl, struct GMT_OPTION *options) {
 	/* This parses the options provided to gmtconnect and sets parameters in CTRL.
 	 * Any GMT common options will override values set previously by other commands.
 	 * It also replaces any file names specified as input or output with the data ID
@@ -236,7 +236,7 @@ GMT_LOCAL int parse (struct GMT_CTRL *GMT, struct GMTCONNECT_CTRL *Ctrl, struct 
 	return (n_errors ? GMT_PARSE_ERROR : GMT_NOERROR);
 }
 
-GMT_LOCAL int gmtconnect_found_a_near_segment (struct LINK *S, uint64_t id, int order, double threshold, bool nn_check, double sdist) {
+GMT_LOCAL int gmtconnect_found_a_near_segment (struct GMTCONNECT_LINK *S, uint64_t id, int order, double threshold, bool nn_check, double sdist) {
 	/* Checks if OK to connect this segment to its nearest neighbor and returns true if OK */
 
 	if (S[S[id].nearest[order].id].used) return (false);		/* Segment has been conncted already */
@@ -285,7 +285,7 @@ EXTERN_MSC int GMT_gmtconnect (void *V_API, int mode, void *args) {
 
 	char *buffer = NULL, msg[GMT_BUFSIZ] = {""}, text[GMT_LEN64] = {""}, *BE = "BE", *ofile = NULL;
 
-	struct LINK *segment = NULL;
+	struct GMTCONNECT_LINK *segment = NULL;
 	struct GMT_DATASET *D[2] = {NULL, NULL}, *C = NULL;
 	struct GMT_DATASET *Q = NULL;
 	struct GMT_DATASEGMENT **T[2] = {NULL, NULL}, *S = NULL;
@@ -383,7 +383,7 @@ EXTERN_MSC int GMT_gmtconnect (void *V_API, int mode, void *args) {
 		Return (GMT_RUNTIME_ERROR);
 	}
 	/* Surely we don't need any more segment space than the number of input segments */
-	segment = gmt_M_memory (GMT, NULL, D[GMT_IN]->n_segments, struct LINK);
+	segment = gmt_M_memory (GMT, NULL, D[GMT_IN]->n_segments, struct GMTCONNECT_LINK);
 	id = ns = out_seg = 0;
 	GMT_Report (API, GMT_MSG_INFORMATION, "Check for already-closed polygons\n");
 
@@ -523,7 +523,7 @@ EXTERN_MSC int GMT_gmtconnect (void *V_API, int mode, void *args) {
 	 * Here we need to do the connecting work.  We already have n_closed polygons stored n D[GMT_OUT] at this point */
 
 	ns = id;	/* Number of open segments remaining, adjust necessary memory */
-	if (ns < D[GMT_IN]->n_segments) segment = gmt_M_memory (GMT, segment, ns, struct LINK);	/* Trim the fat */
+	if (ns < D[GMT_IN]->n_segments) segment = gmt_M_memory (GMT, segment, ns, struct GMTCONNECT_LINK);	/* Trim the fat */
 	skip = gmt_M_memory (GMT, NULL, ns, bool);	/* Used when looking for duplicate segments only */
 
 	GMT_Report (API, GMT_MSG_INFORMATION, "Found %" PRIu64 " closed individual polygons\n", n_closed_orig);
@@ -921,3 +921,15 @@ EXTERN_MSC int GMT_gmtconnect (void *V_API, int mode, void *args) {
 
 	Return (GMT_NOERROR);
 }
+
+EXTERN_MSC int GMT_gmtstitch (void *V_API, int mode, void *args) {
+	/* This was the GMT4 name */
+	struct GMTAPI_CTRL *API = gmt_get_api_ptr (V_API);	/* Cast from void to GMTAPI_CTRL pointer */
+	if (gmt_M_compat_check (API->GMT, 4)) {
+		GMT_Report (API, GMT_MSG_COMPAT, "Module gmtstitch is deprecated; use gmtconnect.\n");
+		return (GMT_Call_Module (API, "gmtconnect", mode, args));
+	}
+	GMT_Report (API, GMT_MSG_ERROR, "Shared GMT module not found: gmtstitch\n");
+	return (GMT_NOT_A_VALID_MODULE);
+}
+

@@ -52,62 +52,62 @@
 #define THIS_MODULE_OPTIONS "-:RVabdefhiqrs" GMT_ADD_x_OPT GMT_OPT("FH")
 
 struct SURFACE_CTRL {
-	struct SRF_A {	/* -A<aspect_ratio> */
+	struct SURFACE_A {	/* -A<aspect_ratio> */
 		bool active;
 		unsigned int mode;	/* 1 if given as fraction */
 		double value;
 	} A;
-	struct SRF_C {	/* -C<converge_limit> */
+	struct SURFACE_C {	/* -C<converge_limit> */
 		bool active;
 		unsigned int mode;	/* 1 if given as fraction */
 		double value;
 	} C;
-	struct SRF_D {	/* -D<line.xyz>[+d][+z[<zval>]] */
+	struct SURFACE_D {	/* -D<line.xyz>[+d][+z[<zval>]] */
 		bool active;
 		bool debug;
 		bool fix_z;
 		double z;
 		char *file;	/* Name of file with breaklines */
 	} D;
-	struct SRF_G {	/* -G<file> */
+	struct SURFACE_G {	/* -G<file> */
 		bool active;
 		char *file;
 	} G;
-	struct SRF_J {	/* -G<file> */
+	struct SURFACE_J {	/* -G<file> */
 		bool active;
 		char *projstring;
 	} J;
-	struct SRF_L {	/* -Ll|u<limit> */
+	struct SURFACE_L {	/* -Ll|u<limit> */
 		bool active;
 		char *file[2];
 		double limit[2];
 		unsigned int mode[2];
 	} L;
-	struct SRF_M {	/* -M<radius> */
+	struct SURFACE_M {	/* -M<radius> */
 		bool active;
 		char *arg;
 	} M;
-	struct SRF_N {	/* -N<max_iterations> */
+	struct SURFACE_N {	/* -N<max_iterations> */
 		bool active;
 		unsigned int value;
 	} N;
-	struct SRF_Q {	/* -Q */
+	struct SURFACE_Q {	/* -Q */
 		bool active;
 	} Q;
-	struct SRF_S {	/* -S<radius>[m|s] */
+	struct SURFACE_S {	/* -S<radius>[m|s] */
 		bool active;
 		double radius;
 		char unit;
 	} S;
-	struct SRF_T {	/* -T<tension>[i][b] */
+	struct SURFACE_T {	/* -T<tension>[i][b] */
 		bool active;
 		double b_tension, i_tension;
 	} T;
-	struct SRF_W {	/* -W[<logfile>] */
+	struct SURFACE_W {	/* -W[<logfile>] */
 		bool active;
 		char *file;
 	} W;
-	struct SRF_Z {	/* -Z<over_relaxation_parameter> */
+	struct SURFACE_Z {	/* -Z<over_relaxation_parameter> */
 		bool active;
 		double value;
 	} Z;
@@ -747,6 +747,11 @@ GMT_LOCAL int surface_read_data (struct GMT_CTRL *GMT, struct SURFACE_INFO *C, s
 			else if (gmt_M_rec_is_eof (GMT)) 		/* Reached end of file */
 				break;
 			continue;	/* Go back and read the next record */
+		}
+
+		if (In->data == NULL) {
+			gmt_quit_bad_record (GMT->parent, In);
+			return (GMT->parent->error);
 		}
 
 		/* Data record to process */
@@ -1595,7 +1600,7 @@ GMT_LOCAL void surface_interpolate_add_breakline (struct GMT_CTRL *GMT, struct S
 	gmt_M_free (GMT, zb);
 }
 
-GMT_LOCAL void *New_Ctrl (struct GMT_CTRL *GMT) {	/* Allocate and initialize a new control structure */
+static void *New_Ctrl (struct GMT_CTRL *GMT) {	/* Allocate and initialize a new control structure */
 	struct SURFACE_CTRL *C;
 
 	C = gmt_M_memory (GMT, NULL, 1, struct SURFACE_CTRL);
@@ -1609,7 +1614,7 @@ GMT_LOCAL void *New_Ctrl (struct GMT_CTRL *GMT) {	/* Allocate and initialize a n
 	return (C);
 }
 
-GMT_LOCAL void Free_Ctrl (struct GMT_CTRL *GMT, struct SURFACE_CTRL *C) {	/* Deallocate control structure */
+static void Free_Ctrl (struct GMT_CTRL *GMT, struct SURFACE_CTRL *C) {	/* Deallocate control structure */
 	if (!C) return;
 	gmt_M_str_free (C->G.file);
 	if (C->D.file) gmt_M_str_free (C->D.file);
@@ -1620,7 +1625,7 @@ GMT_LOCAL void Free_Ctrl (struct GMT_CTRL *GMT, struct SURFACE_CTRL *C) {	/* Dea
 	gmt_M_free (GMT, C);
 }
 
-GMT_LOCAL int usage (struct GMTAPI_CTRL *API, int level) {
+static int usage (struct GMTAPI_CTRL *API, int level) {
 	unsigned int ppm;
 	const char *name = gmt_show_name_and_purpose (API, THIS_MODULE_LIB, THIS_MODULE_CLASSIC_NAME, THIS_MODULE_PURPOSE);
 	if (level == GMT_MODULE_PURPOSE) return (GMT_NOERROR);
@@ -1687,7 +1692,7 @@ GMT_LOCAL int usage (struct GMTAPI_CTRL *API, int level) {
 	return (GMT_MODULE_USAGE);
 }
 
-GMT_LOCAL int parse (struct GMT_CTRL *GMT, struct SURFACE_CTRL *Ctrl, struct GMT_OPTION *options) {
+static int parse (struct GMT_CTRL *GMT, struct SURFACE_CTRL *Ctrl, struct GMT_OPTION *options) {
 	/* Parse the options provided and set parameters in CTRL structure.
 	 * Any GMT common options will override values set previously by other commands.
 	 * It also replaces any file names specified as input or output with the data ID
