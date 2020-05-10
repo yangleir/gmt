@@ -951,7 +951,7 @@ GMT_LOCAL int gmtapi_init_sharedlibs (struct GMTAPI_CTRL *API) {
 	/* At the end of GMT_Create_Session we are done with processing gmt.conf.
 	 * We can now determine how many shared libraries and plugins to consider, and open the core lib */
 	struct GMT_CTRL *GMT = API->GMT;
-	unsigned int n_custom_libs = 0, k, e, n_alloc = GMT_TINY_CHUNK;
+	unsigned int n_custom_libs, k, e, n_alloc = GMT_TINY_CHUNK;
 	char text[PATH_MAX] = {""}, plugindir[PATH_MAX] = {""}, path[PATH_MAX] = {""};
 	char *libname = NULL, **list = NULL;
 #ifdef WIN32
@@ -975,21 +975,33 @@ GMT_LOCAL int gmtapi_init_sharedlibs (struct GMTAPI_CTRL *API) {
 
 	API->lib = gmt_M_memory (GMT, NULL, n_alloc, struct GMT_LIBINFO);
 
-	/* 1. Load the GMT core library by default [unless static build] */
+	/* 1. Load the GMT core library by default [unless libgmt is used externally] */
 	/* Note: To extract symbols from the currently executing process we need to load it as a special library.
 	 * This is done by passing NULL under Linux and by calling GetModuleHandleEx under Windows, hence we
-	 * use the dlopen_special call which is defined in gmt_sharedlibs.c */
+	 * use the dlopen_special call which is defined in gmt_sharedlibs.c.  If the gmt core and supplemental
+	 * libraries are being used by 3rd party externals then no library is special and they are all opened
+	 * the first time we need access. */
 
 	API->lib[0].name = strdup ("core");
-	API->lib[0].path = strdup (GMT_CORE_LIB_NAME);
-	GMT_Report (API, GMT_MSG_DEBUG, "Shared Library # 0 (core). Path = %s\n", API->lib[0].path);
-	++n_custom_libs;
-	GMT_Report (API, GMT_MSG_DEBUG, "Loading core GMT shared library: %s\n", API->lib[0].path);
-	if ((API->lib[0].handle = dlopen_special (API->lib[0].path)) == NULL) {
-		GMT_Report (API, GMT_MSG_ERROR, "Failure while loading core GMT shared library: %s\n", dlerror());
-		gmtapi_exit (API, GMT_RUNTIME_ERROR); return GMT_RUNTIME_ERROR;
+	n_custom_libs = 1;	/* Always have at least one shared gmt library */
+	if (API->external) {	/* Determine the path to this library */
+		if (GMT->init.runtime_libdir) {	/* Successfully determined runtime dir for shared libs */
+			sprintf (path, "%s/%s", GMT->init.runtime_libdir, GMT_CORE_LIB_NAME);
+			API->lib[0].path = strdup (path);
+		}
+		else	/* Rely on the OS to find it */
+			API->lib[0].path = strdup (GMT_CORE_LIB_NAME);
 	}
-	dlerror (); /* Clear any existing error */
+	else {	/* The handling of the core library is only special when gmt.c is used. */
+		API->lib[0].path = strdup (GMT_CORE_LIB_NAME);
+		GMT_Report (API, GMT_MSG_DEBUG, "Loading core GMT shared library: %s\n", API->lib[0].path);
+		if ((API->lib[0].handle = dlopen_special (API->lib[0].path)) == NULL) {
+			GMT_Report (API, GMT_MSG_ERROR, "Failure while loading core GMT shared library: %s\n", dlerror());
+			gmtapi_exit (API, GMT_RUNTIME_ERROR); return GMT_RUNTIME_ERROR;
+		}
+		dlerror (); /* Clear any existing error */
+	}
+	GMT_Report (API, GMT_MSG_DEBUG, "Shared Library # 0 (core). Path = %s\n", API->lib[0].path);
 
 	/* 3. Add any plugins installed in <installdir>/lib/gmt/plugins */
 
@@ -4445,6 +4457,80 @@ GMT_LOCAL int gmtapi_export_dataset (struct GMTAPI_CTRL *API, int object_ID, uns
 	return GMT_NOERROR;
 }
 
+GMT_LOCAL int gmtapi_import_ppm_header (struct GMT_CTRL *GMT, char *fname, bool close, FILE **fp_ppm, struct GMT_IMAGE *I) {
+	/* Reads a Portable Pixel Map (PPM) file header if fname extension is .ppm, else returns  1 */
+	char *ext = gmt_get_ext (fname), text[GMT_LEN64] = {""}, c;
+	int k = 0, max, n;
+	FILE *fp = NULL;
+	if (strcmp (ext, "ppm")) return 1;	/* Not requesting a PPM file - return 1 and let GDAL take over */
+
+	if ((fp = gmt_fopen (GMT, fname, GMT->current.io.r_mode)) == NULL) {	/* Return -1 to signify failure */
+		GMT_Report (GMT->parent, GMT_MSG_ERROR, "Cannot open file %s\n", fname);
+		return -1;
+	}
+	while ((c = fgetc (fp)) != '\n' && k < GMT_LEN64) text[k++] = c;	text[k] = '\0';	/* Get first record up to newline */
+	if (text[1] == '5') /* Used P5 for grayscale image */
+		I->header->n_bands = 1;
+	else if (text[1] == '6')	/* Used P6 for rgb image */
+		I->header->n_bands = 3;
+	else {
+		GMT_Report (GMT->parent, GMT_MSG_ERROR, "Cannot decode PPM magic key (%s) from file %s\n", text, fname);
+		return -1;
+	}
+	c = fgetc (fp);	/* Need to peak ahead to know what record we are dealing with.  PPM can have comments */
+	while (c == '#') {	/* Wind past comment */
+		while ((c = fgetc (fp)) != '\n' ) k++;	/* Ends when c is newline */
+		c = fgetc (fp);	/* Peak ahead again */
+	}
+	/* Put back last read character to the stream */
+	ungetc (c, fp);
+	k = 0;
+	while ((c = fgetc (fp)) != '\n' && k < GMT_LEN64) text[k++] = c;	text[k] = '\0';	/* Get next record up to newline */
+	n = sscanf (text, "%d %d %d", &I->header->n_rows, &I->header->n_columns, &max);
+	if (n == 2) {	/* Must skip past a separate record with the max pixel value */
+		while ((c = fgetc (fp)) != '\n' ) k++;
+	}
+	/* Any read now would start reading the image pixels; done in gmtapi_import_ppm */
+	I->header->registration = GMT_GRID_PIXEL_REG;
+	if (GMT->common.R.active[RSET]) {	/* Got -Rw/e/s/n, we use that as the region for this image */
+		gmt_M_memcpy (I->header->wesn, GMT->common.R.wesn, 4, double);
+		I->header->inc[GMT_X] = gmt_M_get_inc (GMT, I->header->wesn[XLO], I->header->wesn[XHI], I->header->n_columns, GMT_GRID_PIXEL_REG);
+		I->header->inc[GMT_Y] = gmt_M_get_inc (GMT, I->header->wesn[YLO], I->header->wesn[YHI], I->header->n_rows, GMT_GRID_PIXEL_REG);
+	}
+	else {	/* Must just use dimensions to set a dummy -R -I */
+		I->header->wesn[XLO] = I->header->wesn[YLO] = 0.0;
+		I->header->wesn[XHI] = I->header->n_columns;
+		I->header->wesn[YHI] = I->header->n_rows;
+		I->header->inc[GMT_X] = I->header->inc[GMT_Y] = 1.0;
+	}
+	gmt_M_memset (I->header->pad, 4, unsigned int);
+	gmt_set_grddim (GMT, I->header);	/* Update all header dimensions */
+	strcpy (I->header->mem_layout, "TRP");
+	if (close)	/* Close file, we only wanted the header information */
+		gmt_fclose (GMT, fp);
+	else	/* Pass back FILE pointers since we want to read the rest as well */
+		*fp_ppm = fp;
+	return GMT_NOERROR;
+}
+
+GMT_LOCAL int gmtapi_import_ppm (struct GMT_CTRL *GMT, char *fname, struct GMT_IMAGE *I) {
+	/* Reads a Portable Pixel Map (PPM) file if fname extension is .ppm, else returns 1 */
+	FILE *fp = NULL;
+	size_t size;
+
+	if (gmtapi_import_ppm_header (GMT, fname, false, &fp, I)) return 1;	/* Not a PPM */
+	/* Now read the image in scanline order, with each pixel as (R, G, B) or (gray) */
+	size = I->header->nm * I->header->n_bands;
+	if (fread (I->data, sizeof(char), size, fp) != size) {
+		GMT_Report (GMT->parent, GMT_MSG_ERROR, "Failed to read the image from %s\n", fname);
+		gmt_fclose (GMT, fp);
+		return -1;
+	}
+	strncmp (I->header->mem_layout, "TRP", 3U);
+	gmt_fclose (GMT, fp);
+	return GMT_NOERROR;
+}
+
 /*! . */
 GMT_LOCAL struct GMT_IMAGE * gmtapi_import_image (struct GMTAPI_CTRL *API, int object_ID, unsigned int mode, struct GMT_IMAGE *image) {
 	/* Handles the reading of a 2-D grid given in one of several ways.
@@ -4507,7 +4593,9 @@ GMT_LOCAL struct GMT_IMAGE * gmtapi_import_image (struct GMTAPI_CTRL *API, int o
 			I_obj->header->complex_mode = mode;		/* Pass on any bitflags */
 			done = (mode & GMT_CONTAINER_ONLY) ? false : true;	/* Not done until we read grid */
 			if (! (mode & GMT_DATA_ONLY)) {		/* Must init header and read the header information from file */
-				if (gmt_M_err_pass (GMT, gmtlib_read_image_info (GMT, S_obj->filename, must_be_image, I_obj), S_obj->filename)) {
+				if (gmtapi_import_ppm_header (GMT, S_obj->filename, true, NULL, I_obj) == 0)
+					d = 0.0;	/* Placeholder */
+				else if (gmt_M_err_pass (GMT, gmtlib_read_image_info (GMT, S_obj->filename, must_be_image, I_obj), S_obj->filename)) {
 					if (new) gmtlib_free_image (GMT, &I_obj, false);
 					return_null (API, GMT_IMAGE_READ_ERROR);
 				}
@@ -4524,7 +4612,9 @@ GMT_LOCAL struct GMT_IMAGE * gmtapi_import_image (struct GMTAPI_CTRL *API, int o
 				if (size > I_obj->header->size) return_null (API, GMT_IMAGE_READ_ERROR);
 			}
 			GMT_Report (API, GMT_MSG_INFORMATION, "Reading image from file %s\n", S_obj->filename);
-			if (gmt_M_err_pass (GMT, gmtlib_read_image (GMT, S_obj->filename, I_obj, S_obj->wesn,
+			if (gmtapi_import_ppm (GMT, S_obj->filename, I_obj) == 0)
+				d = 0.0;	/* Placeholder */
+			else if (gmt_M_err_pass (GMT, gmtlib_read_image (GMT, S_obj->filename, I_obj, S_obj->wesn,
 				I_obj->header->pad, mode), S_obj->filename))
 				return_null (API, GMT_IMAGE_READ_ERROR);
 			if (gmt_M_err_pass (GMT, gmtlib_image_BC_set (GMT, I_obj), S_obj->filename))
@@ -4703,13 +4793,14 @@ GMT_LOCAL struct GMT_IMAGE * gmtapi_import_image (struct GMTAPI_CTRL *API, int o
 	if (done) S_obj->status = GMT_IS_USED;	/* Mark as read (unless we just got the header) */
 	if (!via) S_obj->resource = I_obj;	/* Retain pointer to the allocated data so we use garbage collection later */
 
-	return ((mode & GMT_DATA_ONLY) ? NULL : I_obj);	/* Pass back out what we have so far */
+	return (I_obj);	/* Pass back out what we have so far */
 }
 
 GMT_LOCAL int gmtapi_export_ppm (struct GMT_CTRL *GMT, char *fname, struct GMT_IMAGE *I) {
 	/* Write a Portable Pixel Map (PPM) file if fname extension is .ppm, else returns */
 	//uint32_t row, col, band;
-	char *ext = gmt_get_ext (fname), *magic = "P6\n# Produced by GMT\n", dim[GMT_LEN32] = {""};
+	static char *comment = "# Produced by GMT\n";
+	char *ext = gmt_get_ext (fname), dim[GMT_LEN32] = {""};
 	FILE *fp = NULL;
 	if (strcmp (ext, "ppm")) return 1;	/* Not requesting a PPM file - return 1 and let GDAL take over */
 
@@ -4717,7 +4808,11 @@ GMT_LOCAL int gmtapi_export_ppm (struct GMT_CTRL *GMT, char *fname, struct GMT_I
 		GMT_Report (GMT->parent, GMT_MSG_ERROR, "Cannot create file %s\n", fname);
 		return -1;
 	}
-	fwrite (magic, sizeof (char), strlen (magic), fp);	/* Write magic number, linefeed, comment, and another linefeed */
+	if (I->header->n_bands == 1) /* Use P5 for grayscale image */
+		fwrite ("P5\n", sizeof (char), 3U, fp);	/* Write magic number, linefeed */
+	else	/* Use P6 for rgb image */
+		fwrite ("P6\n", sizeof (char), 3U, fp);	/* Write magic number, linefeed */
+	fwrite (comment, sizeof (char), strlen (comment), fp);	/* Write magic number, linefeed, comment, and another linefeed */
 	snprintf (dim, GMT_LEN32, "%d %d\n255\n", I->header->n_rows, I->header->n_columns);
 	fwrite (dim, sizeof (char), strlen (dim), fp);	/* Write dimensions and max color value + linefeeds */
 	/* Now dump the image in scaneline order, with each pixel as (R, G, B) */
@@ -6438,7 +6533,7 @@ GMT_LOCAL int gmtapi_encode_id (struct GMTAPI_CTRL *API, unsigned int module_inp
 	gmt_M_memset (filename, GMT_VF_LEN, char);	/* Wipe any trace of previous text */
 	sprintf (filename, "@GMTAPI@-%c-%c-%s-%s-%c-%c-%06d", (module_input) ? 'P' : 'S', (direction == GMT_IN) ? 'I' : 'O', GMT_family_abbrev[family], GMT_family_abbrev[actual_family], gmtapi_debug_geometry_code (geometry), (messenger) ? 'Y' : 'N', object_ID);
 	GMT_Report (API, GMT_MSG_DEBUG, "VirtualFile name created: %s\n", filename);
-	
+
 	return_error (API, GMT_NOERROR);	/* No error encountered */
 }
 
