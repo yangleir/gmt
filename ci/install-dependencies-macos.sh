@@ -21,14 +21,13 @@ packages="ninja netcdf gdal fftw ghostscript"
 
 # packages for build documentations
 if [ "$BUILD_DOCS" = "true" ]; then
-    packages+=" graphicsmagick ffmpeg sphinx"
+    packages+=" graphicsmagick ffmpeg sphinx pngquant"
 fi
 # packages for runing GMT tests
 if [ "$RUN_TESTS" = "true" ]; then
     packages+=" graphicsmagick"
 fi
 
-brew untap homebrew/cask mongodb/brew aws/tap adoptopenjdk/openjdk
 # Install packages
 brew update
 brew install ${packages}
