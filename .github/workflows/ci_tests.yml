@@ -16,7 +16,7 @@ on:
 
 jobs:
   linux:
-    name: ${{ matrix.os }} - ${{ matrix.name }}
+    name: ${{ matrix.name }}
 
     env:
       COASTLINEDIR: ${{ github.workspace }}/coastline
@@ -27,22 +27,46 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-latest, macos-latest]
         include:
-          # Compile only
-          - name: Compile only
+          # Linux
+          - name: Linux - Compile only
+            os: ubuntu-latest
             BUILD_DOCS  : false
             DEPLOY_DOCS : false
             PACKAGE     : false
             RUN_TESTS   : false
-          # Build docs + Deploy docs + Package
-          - name: Build docs + Deploy docs + Package
+
+          - name: Linux - Build docs + Deploy docs + Package
+            os: ubuntu-latest
             BUILD_DOCS  : true
             DEPLOY_DOCS : true
             PACKAGE     : true
             RUN_TESTS   : false
-          # Test
-          - name: Tests
+
+          - name: Linux - Tests
+            os: ubuntu-latest
+            BUILD_DOCS  : false
+            DEPLOY_DOCS : false
+            PACKAGE     : false
+            RUN_TESTS   : true
+
+          # macOS
+          - name: macOS - Compile only
+            os: macos-latest
+            BUILD_DOCS  : false
+            DEPLOY_DOCS : false
+            PACKAGE     : false
+            RUN_TESTS   : false
+
+          - name: macOS - Build docs + Deploy docs + Package
+            os: macos-latest
+            BUILD_DOCS  : true
+            DEPLOY_DOCS : false
+            PACKAGE     : true
+            RUN_TESTS   : false
+
+          - name: macOS - Tests
+            os: macos-latest
             BUILD_DOCS  : false
             DEPLOY_DOCS : false
             PACKAGE     : false

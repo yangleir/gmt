@@ -14,7 +14,9 @@ BUILD_DOCS="${BUILD_DOCS:-false}"
 RUN_TESTS="${RUN_TESTS:-false}"
 
 # packages for compiling GMT
-packages="cmake ninja curl netcdf gdal fftw pcre2 ghostscript"
+#packages="cmake ninja curl netcdf gdal fftw pcre2 ghostscript"
+# cmake, curl and prec2 are pre-installed on GitHub Actions
+packages="ninja netcdf gdal fftw ghostscript"
 
 # packages for build documentations
 if [ "$BUILD_DOCS" = "true" ]; then
@@ -27,4 +29,4 @@ fi
 
 # Install packages
 brew update
-berw install ${packages}
+brew install ${packages}
