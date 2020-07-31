@@ -16,6 +16,7 @@ RUN_TESTS="${RUN_TESTS:-false}"
 # packages for compiling GMT
 #packages="cmake ninja curl netcdf gdal fftw pcre2 ghostscript"
 # cmake, curl and prec2 are pre-installed on GitHub Actions
+#packages="ninja netcdf gdal fftw ghostscript"
 packages="ninja netcdf gdal fftw ghostscript"
 
 # packages for build documentations
@@ -27,6 +28,7 @@ if [ "$RUN_TESTS" = "true" ]; then
     packages+=" graphicsmagick"
 fi
 
+brew untap homebrew/cask mongodb/brew aws/tap adoptopenjdk/openjdk
 # Install packages
 brew update
 brew install ${packages}
