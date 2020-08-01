@@ -36,12 +36,12 @@ jobs:
             PACKAGE     : false
             RUN_TESTS   : false
 
-          - name: Linux - Build docs + Deploy docs + Package
-            os: ubuntu-latest
-            BUILD_DOCS  : true
-            DEPLOY_DOCS : true
-            PACKAGE     : true
-            RUN_TESTS   : false
+          # - name: Linux - Build docs + Deploy docs + Package
+          #   os: ubuntu-latest
+          #   BUILD_DOCS  : true
+          #   DEPLOY_DOCS : true
+          #   PACKAGE     : true
+          #   RUN_TESTS   : false
 
           # - name: Linux - Tests
           #   os: ubuntu-latest
@@ -58,12 +58,12 @@ jobs:
             PACKAGE     : false
             RUN_TESTS   : false
 
-          - name: macOS - Build docs + Deploy docs + Package
-            os: macos-latest
-            BUILD_DOCS  : true
-            DEPLOY_DOCS : false
-            PACKAGE     : true
-            RUN_TESTS   : false
+          # - name: macOS - Build docs + Deploy docs + Package
+          #   os: macos-latest
+          #   BUILD_DOCS  : true
+          #   DEPLOY_DOCS : false
+          #   PACKAGE     : true
+          #   RUN_TESTS   : false
 
           # - name: macOS - Tests
           #   os: macos-latest
