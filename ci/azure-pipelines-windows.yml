@@ -19,7 +19,7 @@ steps:
     git fetch --tags
     git tag
     git checkout tags/2020.06
-    .\bootstrap-vcpkg.bat
+    bootstrap-vcpkg.bat
     # By default, vcpkg builds both release and debug configurations.
     # Set VCPKG_BUILD_TYPE to build release only to save half time
     echo 'set (VCPKG_BUILD_TYPE release)' >> ${VCPKG_INSTALLATION_ROOT}/triplets/${WIN_PLATFORM}.cmake
