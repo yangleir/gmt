@@ -2004,7 +2004,7 @@ static int parse (struct GMT_CTRL *GMT, struct SURFACE_CTRL *Ctrl, struct GMT_OP
 		switch (opt->option) {
 
 			case '<':	/* Skip input files */
-				if (!gmt_check_filearg (GMT, '<', opt->arg, GMT_IN, GMT_IS_DATASET)) n_errors++;
+				if (GMT_Get_FilePath (GMT->parent, GMT_IS_DATASET, GMT_IN, GMT_FILE_REMOTE, &(opt->arg))) n_errors++;;
 				break;
 
 			/* Processes program-specific parameters */
@@ -2450,14 +2450,14 @@ int GMT_surface_mt (void *V_API, int mode, void *args) {
 		GMT_Put_Vector (API, V, GMT_X, GMT_DOUBLE, data[GMT_X]);
 		GMT_Put_Vector (API, V, GMT_Y, GMT_DOUBLE, data[GMT_Y]);
 		/* Create a virtual file for reading the input data grid */
-		if (GMT_Open_VirtualFile (API, GMT_IS_DATASET|GMT_VIA_VECTOR, GMT_IS_POINT, GMT_IN, V, input) == GMT_NOTSET) {
+		if (GMT_Open_VirtualFile (API, GMT_IS_DATASET|GMT_VIA_VECTOR, GMT_IS_POINT, GMT_IN|GMT_IS_REFERENCE, V, input) == GMT_NOTSET) {
 			Return (API->error);
 		}
 		/* Create a virtual file to hold the mask grid */
-		if (GMT_Open_VirtualFile (API, GMT_IS_GRID, GMT_IS_SURFACE, GMT_OUT, NULL, mask) == GMT_NOTSET) {
+		if (GMT_Open_VirtualFile (API, GMT_IS_GRID, GMT_IS_SURFACE, GMT_OUT|GMT_IS_REFERENCE, NULL, mask) == GMT_NOTSET) {
 			Return (API->error);
 		}
-		sprintf (cmd, "%s -G%s -R%g/%g/%g/%g -I%g/%g -NNaN/1/1 -S%s -V%c --GMT_HISTORY=false", input, mask, wesn[XLO], wesn[XHI], wesn[YLO], wesn[YHI],
+		sprintf (cmd, "%s -G%s -R%g/%g/%g/%g -I%g/%g -NNaN/1/1 -S%s -V%c --GMT_HISTORY=readonly", input, mask, wesn[XLO], wesn[XHI], wesn[YLO], wesn[YHI],
 			GMT->common.R.inc[GMT_X], GMT->common.R.inc[GMT_Y], Ctrl->M.arg, V_level[GMT->current.setting.verbose]);
 		GMT_Report (API, GMT_MSG_INFORMATION, "Masking grid nodes away from data points via grdmask\n");
 		GMT_Report (GMT->parent, GMT_MSG_DEBUG, "Calling grdsample with args %s\n", cmd);

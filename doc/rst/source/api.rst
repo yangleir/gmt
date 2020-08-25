@@ -761,6 +761,8 @@ The C/C++ API is deliberately kept small to make it easy to use.
     +--------------------------+-------------------------------------------------------+
     | GMT_Get_Enum_            | Obtain one of the API enum constants                  |
     +--------------------------+-------------------------------------------------------+
+    | GMT_Get_FilePath_        | Verify input file exist and replace with full path    |
+    +--------------------------+-------------------------------------------------------+
     | GMT_Get_Index_           | Convert row, col into a grid or image index           |
     +--------------------------+-------------------------------------------------------+
     | GMT_Get_Info_            | Obtain meta data (range, dimension), ... from object  |
@@ -892,24 +894,26 @@ The ``mode`` argument is only used for external APIs that need
 to communicate their special needs during the session creation.  This integer argument
 is a sum of bit flags and the various bits control the following settings:
 
-#. Bit 1 (1): If set, then GMT will not call the system exit function when a
+#. Bit 1 (1 or GMT_SESSION_NOEXIT): If set, then GMT will not call the system exit function when a
    serious problem has been detected but instead will simply return control
    to the calling environment.  For instance, this is required by the GMT/MATLAB toolbox
    since calling exit would also exit MATLAB itself.  Unless your environment
    has this feature you should leave this bit alone.
-#. Bit 2 (2): If set, then it means we are calling the GMT API from an external
+#. Bit 2 (2 or GMT_SESSION_EXTERNAL): If set, then it means we are calling the GMT API from an external
    API, such as MATLAB, Octave, or Python.  Normal C/C++ programs should
    leave this bit alone.  Its effect is to enable two additional modules
    for reading and writing GMT resources from these environments (those modules
    would not make any sense in a Unix command-line environment).
-#. Bit 3 (4): If set, then it means the external API uses a column-major format for
+#. Bit 3 (4 or GMT_SESSION_COLMAJOR): If set, then it means the external API uses a column-major format for
    matrices (e.g., MATLAB, Fortran).  If not set we default to row-major
    format (C/C++, Python, etc.).
-#. Big 4 (8): If set, we redirect all error messages to a log file based on the
+#. Big 4 (8 or GMT_SESSION_LOGERRORS): If set, we redirect all error messages to a log file based on the
    session name (we append ".log").
-#. Bit 5 (16): If set, the we enable GMT's modern run-mode (where -O -K are
+#. Bit 5 (16 or GMT_SESSION_RUNMODE): If set, the we enable GMT's modern run-mode (where -O -K are
    not allowed and PostScript is written to hidden temp file).  Default
    is the GMT classic run-mode.
+#. Bit 6 (32 or GMT_SESSION_NOHISTORY): If set, the we disable GMT's command shorthand via gmt.history files.
+   The default is to allow this communication between GMT modules.
 
 The ``print_func`` argument is a pointer to a function that is used to print
 messages from GMT via GMT_Message_ or GMT_Report_ from external environments that cannot use the
@@ -948,6 +952,32 @@ and can do all sorts of stuff after the GMT session is destroyed, as long as
 no GMT functions or resources are accessed.  It may be convenient to isolate
 the GMT-specific processing from the custom part of the program and only
 maintain an active GMT session when needed.
+
+Get full path to local or remote files
+--------------------------------------
+
+If given a filename, GMT will look in several directories to find the given
+input file.  However, GMT can also look for files remotely, either via the
+remote file mechanism or URLs.  When you have a remote file (@filename) you
+may wish to have GMT automatically download the file and provide you with the
+local path.  This is a job for GMT_Get_FilePath_, whose prototype is
+
+.. _GMT_Get_FilePath:
+
+  ::
+
+    int GMT_Get_FilePath (void *API, unsigned int family, unsigned int direction,
+      unsigned int mode, char **ptr);
+
+where :ref:`family <tbl-family>` and ``direction`` set the data file type and whether it is
+for input or output, ``mode`` modifies the behavior of the function, and
+``*ptr`` is a pointer to a character string with the filename in question.  Normally,
+we only look for local files (GMT_FILE_LOCAL [0]), but if ``mode`` contains
+the bit flag GMT_FILE_REMOTE [1] we will try to download any remote files given
+to the function.  By default, we will replace the filename with the full
+path.  Add the bit flag GMT_FILE_CHECK [2] to only check for the files and return
+error codes but leave ``*ptr`` alone.
+
 
 Register input or output resources
 ----------------------------------
@@ -1289,7 +1319,9 @@ For vectors the same principles apply:
 where ``V`` is the :ref:`GMT_VECTOR <struct-vector>` created by GMT_Create_Data_, ``col`` is the vector
 column in question, ``type`` is one of the
 recognized data :ref:`types <tbl-types>` used for this vector, and ``vector`` is
-a pointer to this custom vector.
+a pointer to this custom vector.  In addition, ``type`` may be also **GMT_DATETIME**, in which case
+we expect an array of strings with ISO datetime strings and we do the conversion to internal
+GMT time and allocate a vector to hold the result in the given ``col``.
 To extract a custom vector from an output :ref:`GMT_VECTOR <struct-vector>` you can use
 
 .. _GMT_Get_Vector:
@@ -1322,9 +1354,11 @@ array of text strings, one per row.  This is done via
 
 where ``family`` is either GMT_IS_VECTOR or GMT_IS_MATRIX, ``X`` is either a
 :ref:`GMT_VECTOR <struct-vector>` or :ref:`GMT_MATRIX <struct-matrix>`, and
-``array`` is the a pointer to your string array.
+``array`` is the a pointer to your string array.  You may add ``GMT_IS_DUPLICATE`` to
+``family`` to indicate you want the array of strings to be duplicated; the default
+is to just set a pointer to ``array``.
 
-To extract the string array from an output vector or matrix container you will use
+To access the string array from an output vector or matrix container you will use
 
 .. _GMT_Get_Strings:
 
@@ -1521,7 +1555,9 @@ in three different situations:
 
 Space will be allocated to hold the results, as needed, and a pointer to
 the object is returned. If there are errors we simply return NULL and
-report the error. The ``mode`` parameter has different meanings for
+report the error. Note that you can read in a GMT_IS_MATRIX either from a text
+table (passing ``geometry`` as GMT_IS_POINT) or from a grid (passing ``geometry``
+as GMT_IS_SURFACE).  The ``mode`` parameter has different meanings for
 different data types.
 
 **Color palette table**.
@@ -1541,7 +1577,7 @@ different data types.
     Here, ``mode`` determines how we read the grid: To read the entire
     grid and its header, pass ``GMT_CONTAINER_AND_DATA``. However, if you may need to
     extract a sub-region you must first read the header by passing
-    ``GMT_CONTAINER_ONLY``, then examine the header structure range
+    ``GMT_CONTAINER_ONLY`` with ``wesn`` = NULL, then examine the header structure range
     attributes, specify a subset via the array ``wesn``, and
     finally call GMT_Read_Data_ a second time, now with ``mode`` =
     ``GMT_DATA_ONLY``, passing your ``wesn`` array and the grid
@@ -1654,11 +1690,12 @@ to ``family`` so that the module knows what to do.  Finally, in the case of pass
 ``data`` as NULL you may also control what type of matrix or vector will be created in
 GMT for the output by adding in the modifiers GMT_VIA_type, as listed in :ref:`types <tbl-viatypes>`.
 **Note**: GMT tries to minimize data duplication if possible, so if your input arrays are
-compatible with the data type used by the modules then we may use your array directly.
-This *may* have the side-effect that your input array is modified by the module.
-If you want to prevent this from happening then add GMT_IS_DUPLICATE to the ``direction``
-argument and we will duplicate the array internally to make sure your input is truly
-read-only.
+compatible with the data type used by the modules then we could use your array directly.
+This *may* have the side-effect that your input array is modified by the module, especially
+if the module writes the results to a netCDF grid file.
+If that is a price you are willing to pay then you can add GMT_IS_REFERENCE to the ``direction``
+argument and we will pass the array internally to avoid duplicating memory. For output it is
+best to pass GMT_IS_REFERENCE as well.
 
 Import from a virtual file
 ~~~~~~~~~~~~~~~~~~~~~~~~~~

@@ -178,10 +178,9 @@ static int parse (struct GMT_CTRL *GMT, struct X2SYS_CROSS_CTRL *Ctrl, struct GM
 			/* Processes program-specific parameters */
 
 			case 'A':	/* Get list of approved filepair combinations to check */
-				if ((Ctrl->A.active = gmt_check_filearg (GMT, 'A', opt->arg, GMT_IN, GMT_IS_DATASET)) != 0)
-					Ctrl->A.file = strdup (opt->arg);
-				else
-					n_errors++;
+				Ctrl->A.active = true;
+				if (opt->arg[0]) Ctrl->A.file = strdup (opt->arg);
+				if (GMT_Get_FilePath (GMT->parent, GMT_IS_DATASET, GMT_IN, GMT_FILE_REMOTE, &(Ctrl->A.file))) n_errors++;
 				break;
 			case 'C':
 				Ctrl->C.active = true;
@@ -430,7 +429,8 @@ EXTERN_MSC int GMT_x2sys_cross (void *V_API, int mode, void *args) {
 
 	/*---------------------------- This is the x2sys_cross main code ----------------------------*/
 
-	x2sys_err_fail (GMT, x2sys_set_system (GMT, Ctrl->T.TAG, &s, &Bix, &GMT->current.io), Ctrl->T.TAG);
+	if (x2sys_err_fail (GMT, x2sys_set_system (GMT, Ctrl->T.TAG, &s, &Bix, &GMT->current.io), Ctrl->T.TAG))
+		Return (GMT_RUNTIME_ERROR);
 	if (!s->geographic) {
 		gmt_set_column (GMT, GMT_IO, GMT_X, GMT_IS_UNKNOWN);
 		gmt_set_column (GMT, GMT_IO, GMT_Y, GMT_IS_UNKNOWN);
@@ -590,7 +590,8 @@ EXTERN_MSC int GMT_x2sys_cross (void *V_API, int mode, void *args) {
 		plat[SET_A] = plat[SET_B] = iplat * 90.0;	/* Corresponding latitude of pole */
 		GMT_Report (API, GMT_MSG_INFORMATION, "Based on -D setting we will polar project all data using pole latitude %g\n", plat[SET_A]);
 	}
-	gmt_init_distaz (GMT, s->dist_flag ? GMT_MAP_DIST_UNIT : 'X', s->dist_flag, GMT_MAP_DIST);
+	if (gmt_init_distaz (GMT, s->dist_flag ? GMT_MAP_DIST_UNIT : 'X', s->dist_flag, GMT_MAP_DIST) == GMT_NOT_A_VALID_TYPE)
+		Crashout (GMT_NOT_A_VALID_TYPE);
 
 	MGD77_Set_Unit (GMT, s->unit[X2SYS_DIST_SELECTION], &dist_scale, -1);	/* Gets scale which multiplies meters to chosen distance unit */
 	MGD77_Set_Unit (GMT, s->unit[X2SYS_SPEED_SELECTION], &vel_scale, -1);	/* Sets output scale for distances using in velocities */
@@ -642,7 +643,8 @@ EXTERN_MSC int GMT_x2sys_cross (void *V_API, int mode, void *args) {
 			Crashout (error);
 		}
 
-		x2sys_err_fail (GMT, (s->read_file) (GMT, trk_name[A], &data[SET_A], s, &data_set[SET_A], &GMT->current.io, &n_rec[SET_A]), trk_name[A]);
+		if (x2sys_err_fail (GMT, (s->read_file) (GMT, trk_name[A], &data[SET_A], s, &data_set[SET_A], &GMT->current.io, &n_rec[SET_A]), trk_name[A]))
+			Return (GMT_RUNTIME_ERROR);
 
 		if (n_rec[SET_A] == 0) {	/* No data in track A */
 			x2sys_free_data (GMT, data[SET_A], s->n_out_columns, &data_set[SET_A]);
@@ -655,7 +657,10 @@ EXTERN_MSC int GMT_x2sys_cross (void *V_API, int mode, void *args) {
 			if (n_bad < n_rec[SET_A]) has_time[SET_A] = true;
 		}
 
-		if ((dist[SET_A] = gmt_dist_array_2 (GMT, data[SET_A][s->x_col], data[SET_A][s->y_col], n_rec[SET_A], dist_scale, s->dist_flag)) == NULL) gmt_M_err_fail (GMT, GMT_MAP_BAD_DIST_FLAG, "");
+		if ((dist[SET_A] = gmt_dist_array_2 (GMT, data[SET_A][s->x_col], data[SET_A][s->y_col], n_rec[SET_A], dist_scale, s->dist_flag)) == NULL) {
+			error = gmt_M_err_fail (GMT, GMT_MAP_BAD_DIST_FLAG, "");
+			Crashout (error);
+		}
 
 		if (do_examine) {	/* Check all the coordinates and find suitable pole */
 			ymin[SET_A] = ymax[SET_A] = data[SET_A][s->y_col][0];
@@ -701,7 +706,8 @@ EXTERN_MSC int GMT_x2sys_cross (void *V_API, int mode, void *args) {
 			}
 			else {	/* Must read a second file */
 
-				x2sys_err_fail (GMT, (s->read_file) (GMT, trk_name[B], &data[SET_B], s, &data_set[SET_B], &GMT->current.io, &n_rec[SET_B]), trk_name[B]);
+				if (x2sys_err_fail (GMT, (s->read_file) (GMT, trk_name[B], &data[SET_B], s, &data_set[SET_B], &GMT->current.io, &n_rec[SET_B]), trk_name[B]))
+					Return (GMT_RUNTIME_ERROR);
 
 				if (n_rec[SET_B] == 0) {	/* No data in track B */
 					x2sys_free_data (GMT, data[SET_B], s->n_out_columns, &data_set[SET_B]);
@@ -713,7 +719,10 @@ EXTERN_MSC int GMT_x2sys_cross (void *V_API, int mode, void *args) {
 					if (n_bad < n_rec[SET_B]) has_time[SET_B] = true;
 				}
 
-				if ((dist[SET_B] = gmt_dist_array_2 (GMT, data[SET_B][s->x_col], data[SET_B][s->y_col], n_rec[SET_B], dist_scale, s->dist_flag)) == NULL) gmt_M_err_fail (GMT, GMT_MAP_BAD_DIST_FLAG, "");
+				if ((dist[SET_B] = gmt_dist_array_2 (GMT, data[SET_B][s->x_col], data[SET_B][s->y_col], n_rec[SET_B], dist_scale, s->dist_flag)) == NULL) {
+					error = gmt_M_err_fail (GMT, GMT_MAP_BAD_DIST_FLAG, "");
+					Crashout (error);
+				}
 
 				if (do_examine) {	/* Check the coordinates and find suitable pole */
 					ymin[SET_B] = ymax[SET_B] = data[SET_B][s->y_col][0];
@@ -859,7 +868,7 @@ EXTERN_MSC int GMT_x2sys_cross (void *V_API, int mode, void *args) {
 							/* Ok, got enough data to interpolate at xover */
 
 							first = Ctrl->W.width - n_left;
-							n_errors = gmt_intpol (GMT, &t[first], &y[first], (n_left + n_right), 1, &time_x[k], &xdata[k][col], GMT->current.setting.interpolant);
+							n_errors = gmt_intpol (GMT, &t[first], &y[first], NULL, (n_left + n_right), 1, &time_x[k], &xdata[k][col], 0.0, GMT->current.setting.interpolant);
 							if (n_errors == 0) {	/* OK */
 								ok[j]++;
 								n_ok++;

@@ -34,9 +34,9 @@
 #define PA_2_T  (1.0 / T_2_PA)
 #define SQRT_CHI2 2.44774689322	/* This is sqrt (Chi^2) for 95% and 2 degrees of freedom */
 
-/* Latest GPlates rotation model and polygon IDs [GPlates 2.0.0] */
+/* Latest GPlates rotation model and polygon IDs [Muller 2019] */
 #define GPLATES_PLATES    "Global_EarthByte_Plate_ID_Table"		/* .txt */
-#define GPLATES_ROTATIONS "Matthews_etal_GPC_2016_410-0Ma_GK07"		/* .rot */
+#define GPLATES_ROTATIONS "Global_250-0Ma_Rotations_2019_v2"		/* .rot */
 
 #define SPOTTER_E_OPT "-E<rottable>[+i]|<ID1>-<ID2>[+i]|<plon>/<plat>/<prot>"
 
@@ -93,10 +93,10 @@ EXTERN_MSC unsigned int spotter_parse (struct GMT_CTRL *GMT, char option, char *
 EXTERN_MSC int spotter_stage (struct GMT_CTRL *GMT, double t, struct EULER p[], unsigned int ns);
 EXTERN_MSC void spotter_rot_usage (struct GMTAPI_CTRL *API, char option);
 EXTERN_MSC bool spotter_GPlates_pair (char *file);
-EXTERN_MSC unsigned int spotter_init (struct GMT_CTRL *GMT, char *file, struct EULER **p, unsigned int flowline, bool total_out, bool invert, double *t_max);
+EXTERN_MSC int spotter_init (struct GMT_CTRL *GMT, char *file, struct EULER **p, unsigned int flowline, bool total_out, bool invert, double *t_max);
 EXTERN_MSC int spotter_hotspot_init (struct GMT_CTRL *GMT, char *file, bool geocentric, struct HOTSPOT **p);
-EXTERN_MSC unsigned int spotter_backtrack  (struct GMT_CTRL *GMT, double xp[], double yp[], double tp[], unsigned int np, struct EULER p[], unsigned int ns, double d_km, double t_zero, unsigned int do_time, double wesn[], double **c);
-EXTERN_MSC unsigned int spotter_forthtrack (struct GMT_CTRL *GMT, double xp[], double yp[], double tp[], unsigned int np, struct EULER p[], unsigned int ns, double d_km, double t_zero, unsigned int do_time, double wesn[], double **c);
+EXTERN_MSC int spotter_backtrack  (struct GMT_CTRL *GMT, double xp[], double yp[], double tp[], unsigned int np, struct EULER p[], unsigned int ns, double d_km, double t_zero, unsigned int do_time, double wesn[], double **c);
+EXTERN_MSC int spotter_forthtrack (struct GMT_CTRL *GMT, double xp[], double yp[], double tp[], unsigned int np, struct EULER p[], unsigned int ns, double d_km, double t_zero, unsigned int do_time, double wesn[], double **c);
 EXTERN_MSC void spotter_total_to_stages (struct GMT_CTRL *GMT, struct EULER p[], unsigned int n, bool total_rates, bool stage_rates);
 EXTERN_MSC void spotter_stages_to_total (struct GMT_CTRL *GMT, struct EULER p[], unsigned int n, bool total_rates, bool stage_rates);
 EXTERN_MSC void spotter_add_rotations (struct GMT_CTRL *GMT, struct EULER a[], int n_a, struct EULER b[], int n_b, struct EULER *c[], unsigned int *n_c);

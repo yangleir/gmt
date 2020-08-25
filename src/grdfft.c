@@ -662,10 +662,11 @@ static int parse (struct GMT_CTRL *GMT, struct GRDFFT_CTRL *Ctrl, struct F_INFO 
 					n_errors++;
 					GMT_Report (API, GMT_MSG_ERROR, "A maximum of two input grids may be processed\n");
 				}
-				else if (gmt_check_filearg (GMT, '<', opt->arg, GMT_IN, GMT_IS_GRID))
-					Ctrl->In.file[Ctrl->In.n_grids++] = strdup (opt->arg);
-				else
-					n_errors++;
+				else {
+					Ctrl->In.file[Ctrl->In.n_grids] = strdup (opt->arg);
+					if (GMT_Get_FilePath (GMT->parent, GMT_IS_GRID, GMT_IN, GMT_FILE_REMOTE, &(Ctrl->In.file[Ctrl->In.n_grids]))) n_errors++;;
+					Ctrl->In.n_grids++;
+				}
 				break;
 
 			/* Processes program-specific parameters */
@@ -875,7 +876,7 @@ EXTERN_MSC int GMT_grdfft (void *V_API, int mode, void *args) {
 		/* Note: If input grid(s) are read-only then we must duplicate them; otherwise Grid[k] points to Orig[k]
 		 * From here we address the first grid via Grid[0] and the 2nd grid (if given) as Grid[1];
 	 	 * we are done with using the addresses Orig[k] directly. */
-		(void) gmt_set_outgrid (GMT, Ctrl->In.file[k], false, Orig[k], &Grid[k]);
+		(void) gmt_set_outgrid (GMT, Ctrl->In.file[k], false, 0, Orig[k], &Grid[k]);
 		FFT_info[k] = GMT_FFT_Create (API, Grid[k], GMT_FFT_DIM, GMT_GRID_IS_COMPLEX_REAL, Ctrl->N.info);
 	}
 	K = FFT_info[0];	/* We only need one of these anyway; K is a shorthand */

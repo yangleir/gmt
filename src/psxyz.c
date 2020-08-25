@@ -337,7 +337,7 @@ static int parse (struct GMT_CTRL *GMT, struct PSXYZ_CTRL *Ctrl, struct GMT_OPTI
 		switch (opt->option) {
 
 			case '<':	/* Skip input files */
-				if (!gmt_check_filearg (GMT, '<', opt->arg, GMT_IN, GMT_IS_DATASET)) n_errors++;
+				if (GMT_Get_FilePath (GMT->parent, GMT_IS_DATASET, GMT_IN, GMT_FILE_REMOTE, &(opt->arg))) n_errors++;;
 				n_files++;
 				break;
 
@@ -858,7 +858,7 @@ EXTERN_MSC int GMT_psxyz (void *V_API, int mode, void *args) {
 		/* Determine if we need to worry about repeating periodic symbols */
 		if (clip_set && (Ctrl->N.mode == PSXYZ_CLIP_REPEAT || Ctrl->N.mode == PSXYZ_NO_CLIP_REPEAT) && gmt_M_360_range (GMT->common.R.wesn[XLO], GMT->common.R.wesn[XHI]) && gmt_M_is_geographic (GMT, GMT_IN)) {
 			/* Only do this for projection where west and east are split into two separate repeating boundaries */
-			periodic = (gmt_M_is_cylindrical (GMT) || gmt_M_is_misc (GMT));
+			periodic = gmt_M_is_periodic (GMT);
 			if (S.symbol == GMT_SYMBOL_GEOVECTOR) periodic = false;
 		}
 		n_times = (periodic) ? 2 : 1;	/* For periodic boundaries we plot each symbol twice to allow for periodic clipping */
@@ -950,7 +950,9 @@ EXTERN_MSC int GMT_psxyz (void *V_API, int mode, void *args) {
 					if (read_symbol) API->object[API->current_item[GMT_IN]]->n_expected_fields = GMT_MAX_COLUMNS;
 					if (gmt_parse_segment_item (GMT, GMT->current.io.segment_header, "-S", s_args)) {	/* Found -Sargs */
 						if (!(s_args[0] == 'q'|| s_args[0] == 'f')) { /* Update parameters */
-							gmt_parse_symbol_option (GMT, s_args, &S, 0, false);
+							if ((error = gmt_parse_symbol_option (GMT, s_args, &S, 0, false))) {
+								Return (error);
+							}
 						}
 						else
 							GMT_Report (API, GMT_MSG_ERROR, "Segment header tries to switch to a line symbol like quoted line or fault - ignored\n");
@@ -971,7 +973,9 @@ EXTERN_MSC int GMT_psxyz (void *V_API, int mode, void *args) {
 
 			if (read_symbol) {	/* Must do special processing */
 				if (S.read_symbol_cmd == 1) {
-					gmt_parse_symbol_option (GMT, In->text, &S, 1, false);
+					if ((error = gmt_parse_symbol_option (GMT, In->text, &S, 1, false))) {
+						Return (error);
+					}
 					if (S.symbol == GMT_SYMBOL_COLUMN) {
 						n_z = psxyz_get_column_bands (&S);
 						if (n_z > 1 && !Ctrl->C.active) {
@@ -1603,7 +1607,8 @@ EXTERN_MSC int GMT_psxyz (void *V_API, int mode, void *args) {
 							if (S.custom->type[j] == GMT_IS_ANGLE && dim[j+1] < 0.0) dim[j+1] += 360.0;
 						}
 						if (!S.custom->start) S.custom->start = (get_rgb) ? 4 : 3;
-						gmt_draw_custom_symbol (GMT, xpos[item], data[i].y, dim, data[i].string, data[i].custom, &data[i].p, &data[i].f, data[i].outline);
+						if ((error = gmt_draw_custom_symbol (GMT, xpos[item], data[i].y, dim, data[i].string, data[i].custom, &data[i].p, &data[i].f, data[i].outline)))
+							Return (error);
 						gmt_M_free (GMT, data[i].custom);
 						if (data[i].string) gmt_M_str_free (data[i].string);
 						break;
@@ -1617,10 +1622,12 @@ EXTERN_MSC int GMT_psxyz (void *V_API, int mode, void *args) {
 		gmt_reset_meminc (GMT);
 	}
 	else {	/* Line/polygon part */
+		bool duplicate = false;
 		int outline_setting;
 		uint64_t seg;
 		struct GMT_DATASET *D = NULL;	/* Pointer to GMT segment table(s) */
 		struct GMT_DATASEGMENT_HIDDEN *SH = NULL;
+		struct GMT_DATASET_HIDDEN *DH = NULL;
 
 		if (GMT_Init_IO (API, GMT_IS_DATASET, geometry, GMT_IN, GMT_ADD_DEFAULT, 0, options) != GMT_NOERROR) {	/* Establishes data input */
 			Return (API->error);
@@ -1632,6 +1639,7 @@ EXTERN_MSC int GMT_psxyz (void *V_API, int mode, void *args) {
 			GMT_Report (API, GMT_MSG_ERROR, "Input data have %d column(s) but at least 3 are needed\n", (int)D->n_columns);
 			Return (GMT_DIM_TOO_SMALL);
 		}
+		DH = gmt_get_DD_hidden (D);
 
 		if (Zin) {	/* Check that the Z file matches our polygon file */
 			if (Zin->n_records < D->n_segments) {
@@ -1679,6 +1687,10 @@ EXTERN_MSC int GMT_psxyz (void *V_API, int mode, void *args) {
 				else
 					GMT_Report (API, GMT_MSG_INFORMATION, "Plotting segment %" PRIu64 "\n", seg);
 
+				duplicate = (DH->alloc_mode == GMT_ALLOC_EXTERNALLY && GMT->current.map.path_mode == GMT_RESAMPLE_PATH && psxyz_no_z_variation (GMT, L));
+				if (duplicate)	/* Must duplicate externally allocated segment since it needs to be resampled below */
+					L = gmt_duplicate_segment (GMT, D->table[tbl]->segment[seg]);
+
 				/* We had here things like:	x = D->table[tbl]->segment[seg]->data[GMT_X];
 				 * but reallocating x below lead to disasters.  */
 
@@ -1701,13 +1713,19 @@ EXTERN_MSC int GMT_psxyz (void *V_API, int mode, void *args) {
 					outline_setting = outline_active ? 1 : 0;
 				}
 
-				if (P && PH->skip) continue;	/* Chosen CPT indicates skip for this z */
+				if (P && PH->skip) {
+					if (duplicate)	/* Free duplicate segment */
+						gmt_free_segment (GMT, &L);
+					continue;	/* Chosen CPT indicates skip for this z */
+				}
 
 				if (L->header && L->header[0]) {
 					PSL_comment (PSL, "Segment header: %s\n", L->header);
 					if (gmt_parse_segment_item (GMT, L->header, "-S", s_args)) {	/* Found -S */
 						if ((S.symbol == GMT_SYMBOL_QUOTED_LINE && s_args[0] == 'q') || (S.symbol == GMT_SYMBOL_FRONT && s_args[0] == 'f')) { /* Update parameters */
-							gmt_parse_symbol_option (GMT, s_args, &S, 0, false);
+							if ((error = gmt_parse_symbol_option (GMT, s_args, &S, 0, false))) {
+								Return (error);
+							}
 							if (change & 1) change -= 1;	/* Don't want polygon to be true later for these symbols */
 						}
 						else if (S.symbol == GMT_SYMBOL_QUOTED_LINE || S.symbol == GMT_SYMBOL_FRONT)
@@ -1725,6 +1743,8 @@ EXTERN_MSC int GMT_psxyz (void *V_API, int mode, void *args) {
 						GMT_Report (API, GMT_MSG_ERROR, "Segment header did not supply enough parameters for -Sf; skipping this segment\n");
 					else
 						GMT_Report (API, GMT_MSG_ERROR, "Segment header did not supply enough parameters for -Sq; skipping this segment\n");
+					if (duplicate)	/* Free duplicate segment */
+						gmt_free_segment (GMT, &L);
 					continue;
 				}
 
@@ -1758,7 +1778,6 @@ EXTERN_MSC int GMT_psxyz (void *V_API, int mode, void *args) {
 					gmt_set_seg_minmax (GMT, D->geometry, 2, L);	/* Update min/max of x/y only */
 				}
 
-
 				n = (int)L->n_rows;				/* Number of points in this segment */
 				xp = gmt_M_memory (GMT, NULL, n, double);
 				yp = gmt_M_memory (GMT, NULL, n, double);
@@ -1775,7 +1794,7 @@ EXTERN_MSC int GMT_psxyz (void *V_API, int mode, void *args) {
 					gmt_plane_perspective (GMT, GMT_Z + GMT_ZW, GMT->current.proj.z_level);
 					if ((GMT->current.plot.n = gmt_geo_to_xy_line (GMT, L->data[GMT_X], L->data[GMT_Y], L->n_rows)) == 0) continue;
 					S.G.line_pen = current_pen;
-					closed = !(gmt_polygon_is_open (GMT, GMT->current.plot.x, GMT->current.plot.y, GMT->current.plot.n));
+					closed = (GMT->current.plot.n > 2 && !(gmt_polygon_is_open (GMT, GMT->current.plot.x, GMT->current.plot.y, GMT->current.plot.n)));
 					gmt_hold_contour (GMT, &GMT->current.plot.x, &GMT->current.plot.y, GMT->current.plot.n, 0.0, "N/A", 'A', S.G.label_angle, closed, false, &S.G);
 					GMT->current.plot.n_alloc = GMT->current.plot.n;	/* Since gmt_hold_contour reallocates to fit the array */
 				}
@@ -1888,6 +1907,8 @@ EXTERN_MSC int GMT_psxyz (void *V_API, int mode, void *args) {
 					gmt_draw_front (GMT, GMT->current.plot.x, GMT->current.plot.y, GMT->current.plot.n, &S.f);
 					if (S.f.f_pen == 0) gmt_setpen (GMT, &current_pen);	/* Reinstate current pen */
 				}
+				if (duplicate)	/* Free duplicate segment */
+					gmt_free_segment (GMT, &L);
 
 				gmt_M_free (GMT, xp);
 				gmt_M_free (GMT, yp);

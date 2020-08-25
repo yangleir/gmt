@@ -188,8 +188,12 @@ static int parse (struct GMT_CTRL *GMT, struct X2SYS_LIST_CTRL *Ctrl, struct GMT
 			/* Common parameters */
 
 			case '<':	/* Skip input files */
-				if (!gmt_check_filearg (GMT, '<', opt->arg, GMT_IN, GMT_IS_DATASET)) n_errors++;
-				else if (n_files[GMT_IN]++ == 0) Ctrl->In.file = strdup (opt->arg);
+				if (n_files[GMT_IN]++ > 0) break;
+				if (opt->arg[0]) Ctrl->In.file = strdup (opt->arg);
+				if (GMT_Get_FilePath (GMT->parent, GMT_IS_DATASET, GMT_IN, GMT_FILE_REMOTE, &(Ctrl->In.file)))
+					n_errors++;
+				else
+					Ctrl->In.active = true;
 				break;
 			case '>':	/* Got named output file */
 				n_files[GMT_OUT]++;
@@ -213,18 +217,15 @@ static int parse (struct GMT_CTRL *GMT, struct X2SYS_LIST_CTRL *Ctrl, struct GMT
 				Ctrl->F.flags = strdup (opt->arg);
 				break;
 			case 'I':
-				if ((Ctrl->I.active = gmt_check_filearg (GMT, 'I', opt->arg, GMT_IN, GMT_IS_DATASET)) != 0)
-					Ctrl->I.file = strdup (opt->arg);
-				else
-					n_errors++;
+				Ctrl->I.active = true;
+				if (opt->arg[0]) Ctrl->I.file = strdup (opt->arg);
+				if (GMT_Get_FilePath (GMT->parent, GMT_IS_DATASET, GMT_IN, GMT_FILE_REMOTE, &(Ctrl->I.file))) n_errors++;
 				break;
 			case 'L':	/* Crossover correction table */
 				Ctrl->L.active = true;
 				if (opt->arg[0]) {
-					if (gmt_check_filearg (GMT, 'L', opt->arg, GMT_IN, GMT_IS_DATASET))
-						Ctrl->L.file = strdup (opt->arg);
-					else
-						n_errors++;
+					Ctrl->L.file = strdup (opt->arg);
+					if (GMT_Get_FilePath (GMT->parent, GMT_IS_DATASET, GMT_IN, GMT_FILE_REMOTE, &(Ctrl->L.file))) n_errors++;
 				}
 				break;
 			case 'N':
@@ -307,6 +308,7 @@ EXTERN_MSC int GMT_x2sys_list (void *V_API, int mode, void *args) {
 	bool external = true;	/* false if only internal xovers are needed */
 	uint64_t i, j, k, one, two, n_items, n_tracks;
 	uint64_t p, np_use = 0, nx_use = 0, np, m, nx, *trk_nx = NULL;
+	int64_t value;
 	unsigned int n_weights = 0, coe_kind, n_output, cmode;
 	int error = 0, id;
 	double *wesn = NULL, val[2], out[128], corr[2] = {0.0, 0.0}, sec_2_unit = 1.0, w_k, w;
@@ -350,11 +352,13 @@ EXTERN_MSC int GMT_x2sys_list (void *V_API, int mode, void *args) {
 
 	/* Initialize system via the tag */
 
-	x2sys_err_fail (GMT, x2sys_set_system (GMT, Ctrl->T.TAG, &s, &B, &GMT->current.io), Ctrl->T.TAG);
+	if (x2sys_err_fail (GMT, x2sys_set_system (GMT, Ctrl->T.TAG, &s, &B, &GMT->current.io), Ctrl->T.TAG))
+		Return (GMT_RUNTIME_ERROR);
 
 	/* Verify that the chosen column is known to the system */
 
-	if (Ctrl->C.col) x2sys_err_fail (GMT, x2sys_pick_fields (GMT, Ctrl->C.col, s), "-C");
+	if (Ctrl->C.col && x2sys_err_fail (GMT, x2sys_pick_fields (GMT, Ctrl->C.col, s), "-C"))
+		Return (GMT_RUNTIME_ERROR);
 	if (s->n_out_columns != 1) {
 		GMT_Report (API, GMT_MSG_ERROR, "-C must specify a single column name\n");
 		x2sys_end (GMT, s);
@@ -373,7 +377,10 @@ EXTERN_MSC int GMT_x2sys_list (void *V_API, int mode, void *args) {
 	from = (Ctrl->In.file) ? Ctrl->In.file : tofrom[GMT_IN];
 	if (GMT->common.R.active[RSET]) wesn = GMT->common.R.wesn;	/* Passed a sub region request */
 	GMT_Report (API, GMT_MSG_INFORMATION, "Read crossover database from %s...\n", from);
-	np = x2sys_read_coe_dbase (GMT, s, Ctrl->In.file, Ctrl->I.file, wesn, Ctrl->C.col, coe_kind, Ctrl->S.file, &P, &nx, &n_tracks);
+	if ((value = x2sys_read_coe_dbase (GMT, s, Ctrl->In.file, Ctrl->I.file, wesn, Ctrl->C.col, coe_kind, Ctrl->S.file, &P, &nx, &n_tracks)) < 0)
+		Return (-value);
+
+	np = (uint64_t)value;
 	GMT_Report (API, GMT_MSG_INFORMATION, "Found %" PRIu64 " pairs and a total of %" PRIu64 " crossover records.\n", np, nx);
 
 	if (np == 0 && nx == 0) {	/* End here since nothing was allocated */
@@ -444,7 +451,8 @@ EXTERN_MSC int GMT_x2sys_list (void *V_API, int mode, void *args) {
 	}
 
 	if (Ctrl->L.active) {	/* Load an ephemeral correction table */
-		x2sys_get_corrtable (GMT, s, Ctrl->L.file, n_tracks, trk_name, Ctrl->C.col, NULL, NULL, &CORR);
+		if ((error = x2sys_get_corrtable (GMT, s, Ctrl->L.file, n_tracks, trk_name, Ctrl->C.col, NULL, NULL, &CORR)))
+			Return (error);
 	}
 
 	if (Ctrl->A.active) {	/* Requested asymmetry estimates */

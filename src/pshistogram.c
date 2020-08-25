@@ -28,7 +28,7 @@
 #define THIS_MODULE_MODERN_NAME	"histogram"
 #define THIS_MODULE_LIB		"core"
 #define THIS_MODULE_PURPOSE	"Calculate and plot histograms"
-#define THIS_MODULE_KEYS	"<D{,CC(,>X},>D),>DI@<D{,ID)"
+#define THIS_MODULE_KEYS	"<D{,CC(,>X},>D),>DI"
 #define THIS_MODULE_NEEDS	"JR"
 #define THIS_MODULE_OPTIONS "->BJKOPRUVXYbdefhipqstxy" GMT_OPT("Ec")
 
@@ -253,12 +253,12 @@ GMT_LOCAL int pshistogram_fill_boxes (struct GMT_CTRL *GMT, struct PSHISTOGRAM_I
 }
 
 GMT_LOCAL double pshistogram_plot_boxes (struct GMT_CTRL *GMT, struct PSL_CTRL *PSL, struct GMT_PALETTE *P, struct PSHISTOGRAM_INFO *F, bool stairs, bool flip_to_y, bool draw_outline, struct GMT_PEN *pen, struct GMT_FILL *fill, bool cpt, struct PSHISTOGRAM_D *D) {
-	int i, index, fmode = 0, label_justify;
+	int i, k = 0, index, fmode = 0, label_justify;
 	uint64_t ibox;
 	char label[GMT_LEN64] = {""};
 	bool first = true;
 	double area = 0.0, rgb[4], x[4], y[4], dx, xx, yy, xval, label_angle = 0.0, *px = NULL, *py = NULL;
-	double plot_x = 0.0, plot_y = 0.0;
+	double plot_x = 0.0, plot_y = 0.0, *xpol = NULL, *ypol = NULL;
 	struct GMT_FILL *f = NULL;
 
 	if (draw_outline) gmt_setpen (GMT, pen);
@@ -272,6 +272,10 @@ GMT_LOCAL double pshistogram_plot_boxes (struct GMT_CTRL *GMT, struct PSL_CTRL *
 		py = y;
 	}
 
+	if (stairs && F->n_boxes) {	/* Build the outline polygon */
+		xpol = gmt_M_memory (GMT, NULL, 2*(F->n_boxes+1), double);
+		ypol = gmt_M_memory (GMT, NULL, 2*(F->n_boxes+1), double);
+	}
 	/* First lay down the bars or curve */
 	for (ibox = 0; ibox < F->n_boxes; ibox++) {
 		if (stairs || F->boxh[ibox]) {
@@ -310,10 +314,10 @@ GMT_LOCAL double pshistogram_plot_boxes (struct GMT_CTRL *GMT, struct PSL_CTRL *
 			if (stairs) {
 				if (first) {
 					first = false;
-					PSL_plotpoint (PSL, px[0], py[0], PSL_MOVE);
+					xpol[k] = px[0];	ypol[k++] = py[0];
 				}
-				PSL_plotpoint (PSL, px[3], py[3], PSL_DRAW);
-				PSL_plotpoint (PSL, px[2], py[2], PSL_DRAW);
+				xpol[k] = px[3];	ypol[k++] = py[3];
+				xpol[k] = px[2];	ypol[k++] = py[2];
 			}
 			else if (cpt) {
 				index = gmt_get_rgb_from_z (GMT, P, xval, rgb);
@@ -330,7 +334,19 @@ GMT_LOCAL double pshistogram_plot_boxes (struct GMT_CTRL *GMT, struct PSL_CTRL *
 			}
 		}
 	}
-	if (stairs && F->n_boxes) PSL_plotpoint (PSL, px[1], py[1], PSL_DRAW + PSL_STROKE);
+	if (stairs && F->n_boxes) {
+		xpol[k] = px[1];	ypol[k++] = py[1];
+		if (fill) {
+			gmt_setfill (GMT, fill, 0);
+			PSL_plotpolygon (PSL, xpol, ypol, k);
+		}
+		if (draw_outline) {
+			gmt_setfill (GMT, NULL, 1);
+			PSL_plotpolygon (PSL, xpol, ypol, k);
+		}
+		gmt_M_free (GMT, xpol);
+		gmt_M_free (GMT, ypol);
+	}
 
 	/* If -D then place labels */
 	if (D->active) {	/* Place label, so set font */
@@ -452,6 +468,7 @@ GMT_LOCAL bool pshistogram_new_syntax (struct GMT_CTRL *GMT, char *L, char *T, c
 	if (L) return false;				/* Here, must have given -L<pen> */
 	if (W && (strstr (W, "+b") || strstr (W, "+h") || strstr (W, "+l"))) return false;	/* Gave -W<width>+b|h|l */
 	if (W && strchr (GMT_DIM_UNITS, W[strlen(W)-1])) return true;	/* Must have given a -W<pen> */
+	if (W && strchr (W, ',')) return true;	/* Must have given a -W<pen>,<color> */
 	/* Unclear, get -T and -W args and see if we can learn from their values */
 	w_val = atof (W);	t_val = atof (T);
 	if (w_val == 0.0) return true;	/* Must have given a zero pen width (faint) */
@@ -544,13 +561,13 @@ static int parse (struct GMT_CTRL *GMT, struct PSHISTOGRAM_CTRL *Ctrl, struct GM
 		switch (opt->option) {
 
 			case '<':	/* Skip input files */
-				if (!gmt_check_filearg (GMT, '<', opt->arg, GMT_IN, GMT_IS_DATASET)) n_errors++;
+				if (GMT_Get_FilePath (GMT->parent, GMT_IS_DATASET, GMT_IN, GMT_FILE_REMOTE, &(opt->arg))) n_errors++;;
 				break;
 			case '>':	/* Got named output file */
-				if (n_files++ == 0 && gmt_check_filearg (GMT, '>', opt->arg, GMT_OUT, GMT_IS_DATASET))
-					Ctrl->Out.file = strdup (opt->arg);
-				else
-					n_errors++;
+				if (n_files++ > 0) { n_errors++; continue; }
+				Ctrl->Out.active = true;
+				if (opt->arg[0]) Ctrl->Out.file = strdup (opt->arg);
+				if (GMT_Get_FilePath (GMT->parent, GMT_IS_DATASET, GMT_OUT, GMT_FILE_LOCAL, &(Ctrl->Out.file))) n_errors++;
 				break;
 
 			/* Processes program-specific parameters */
@@ -990,7 +1007,7 @@ EXTERN_MSC int GMT_pshistogram (void *V_API, int mode, void *args) {
 				row++;
 			}
 			S->n_rows = row;
-			if (GMT_Write_Data (GMT->parent, GMT_IS_DATASET, GMT_IS_STREAM, GMT_IS_POINT, 0, NULL, Ctrl->Out.file, D) != GMT_NOERROR) {
+			if (GMT_Write_Data (GMT->parent, GMT_IS_DATASET, GMT_IS_STREAM, GMT_IS_POINT, GMT_WRITE_NORMAL, NULL, Ctrl->Out.file, D) != GMT_NOERROR) {
 				gmt_M_free (GMT, data);		gmt_M_free (GMT, F.boxh);
 				if (F.weights) gmt_M_free (GMT, weights);
 				Return (API->error);
@@ -1100,16 +1117,25 @@ EXTERN_MSC int GMT_pshistogram (void *V_API, int mode, void *args) {
 		}
 		wesn[XLO] = F.wesn[YLO];	wesn[XHI] = F.wesn[YHI];
 		wesn[YLO] = F.wesn[XLO];	wesn[YHI] = F.wesn[XHI];
+		gmt_M_memcpy (GMT->common.R.wesn, wesn, 4, double);
 		if (gmt_M_err_pass (GMT, gmt_map_setup (GMT, wesn), "")) Return (GMT_PROJECTION_ERROR);
 	}
 	else {
+		gmt_M_memcpy (GMT->common.R.wesn, F.wesn, 4, double);
 		if (gmt_M_err_pass (GMT, gmt_map_setup (GMT, F.wesn), "")) {
 			gmt_M_free (GMT, data);
 			if (F.weights) gmt_M_free (GMT, weights);
 			Return (GMT_PROJECTION_ERROR);
 		}
 	}
-
+	if (automatic) {	/* Must add the result to the history */
+		char Rtxt[GMT_LEN128] = {""};
+		int id = gmt_get_option_id (0, "R");	/* The -RP history index */
+		if (GMT->init.history[id]) gmt_M_str_free (GMT->init.history[id]);	/* Remove whatever this was */
+		sprintf (Rtxt, "%.16g/%.16g/%.16g/%.16g", GMT->common.R.wesn[XLO], GMT->common.R.wesn[XHI], GMT->common.R.wesn[YLO], GMT->common.R.wesn[YHI]);
+		GMT->init.history[id] = strdup (Rtxt);	/* Update with the dimension of the whole subplot frame */
+	}
+	
 	if ((PSL = gmt_plotinit (GMT, options)) == NULL) Return (GMT_RUNTIME_ERROR);
 
 	gmt_plane_perspective (GMT, GMT->current.proj.z_project.view_plane, GMT->current.proj.z_level);

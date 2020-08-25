@@ -28,6 +28,7 @@ All modules are requested via a call to the :doc:`gmt` program.
 .. toctree::
     :hidden:
 
+    batch
     blockmean
     blockmedian
     blockmode
@@ -36,6 +37,7 @@ All modules are requested via a call to the :doc:`gmt` program.
     filter1d
     fitcircle
     gmt2kml
+    gmtbinstats
     gmtconnect
     gmtconvert
     gmtdefaults
@@ -71,6 +73,7 @@ All modules are requested via a call to the :doc:`gmt` program.
     grdlandmask
     grdmask
     grdmath
+    grdmix
     grdpaste
     grdproject
     grdsample
@@ -181,6 +184,7 @@ Core Modules
 .. hlist::
     :columns: 6
 
+    - :doc:`batch`
     - :doc:`blockmean`
     - :doc:`blockmedian`
     - :doc:`blockmode`
@@ -189,6 +193,7 @@ Core Modules
     - :doc:`filter1d`
     - :doc:`fitcircle`
     - :doc:`gmt2kml`
+    - :doc:`gmtbinstats`
     - :doc:`gmtconnect`
     - :doc:`gmtconvert`
     - :doc:`gmtdefaults`
@@ -224,6 +229,7 @@ Core Modules
     - :doc:`grdlandmask`
     - :doc:`grdmask`
     - :doc:`grdmath`
+    - :doc:`grdmix`
     - :doc:`grdpaste`
     - :doc:`grdproject`
     - :doc:`grdsample`
@@ -485,6 +491,8 @@ Convert or extract subsets of data
 ----------------------------------
 
 +-----------------------+-----------------------+
+| :doc:`gmtbinstats`    | |gmtbinstats_purpose| |
++-----------------------+-----------------------+
 | :doc:`gmtconnect`     | |gmtconnect_purpose|  |
 +-----------------------+-----------------------+
 | :doc:`gmtconvert`     | |gmtconvert_purpose|  |
@@ -551,12 +559,16 @@ Grid operations
 +-----------------------+-----------------------+
 | :doc:`grdmath`        | |grdmath_purpose|     |
 +-----------------------+-----------------------+
+| :doc:`grdmix`         | |grdmix_purpose|      |
++-----------------------+-----------------------+
 | :doc:`grdvolume`      | |grdvolume_purpose|   |
 +-----------------------+-----------------------+
 
 Miscellaneous
 -------------
 
++-----------------------+-----------------------+
+| :doc:`batch`          | |batch_purpose|       |
 +-----------------------+-----------------------+
 | :doc:`docs`           | |docs_purpose|        |
 +-----------------------+-----------------------+

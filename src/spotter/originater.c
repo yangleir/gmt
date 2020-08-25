@@ -258,7 +258,7 @@ static int parse (struct GMT_CTRL *GMT, struct ORIGINATOR_CTRL *Ctrl, struct GMT
 		switch (opt->option) {
 
 			case '<':	/* Skip input files */
-				if (!gmt_check_filearg (GMT, '<', opt->arg, GMT_IN, GMT_IS_DATASET)) n_errors++;
+				if (GMT_Get_FilePath (GMT->parent, GMT_IS_DATASET, GMT_IN, GMT_FILE_REMOTE, &(opt->arg))) n_errors++;;
 				break;
 
 			/* Supplemental parameters */
@@ -276,19 +276,15 @@ static int parse (struct GMT_CTRL *GMT, struct ORIGINATOR_CTRL *Ctrl, struct GMT
 				Ctrl->E.active = true;	k = 0;
 				if (opt->arg[0] == '+') { Ctrl->E.mode = true; k = 1;}
 				else if ((c = strstr (opt->arg, "+i"))) {Ctrl->E.mode = true; c[0] = '\0';}
-				if (gmt_check_filearg (GMT, 'E', &opt->arg[k], GMT_IN, GMT_IS_DATASET))
-					Ctrl->E.file  = strdup (&opt->arg[k]);
-				else
-					n_errors++;
+				if (opt->arg[k]) Ctrl->E.file = strdup (&opt->arg[k]);
+				if (GMT_Get_FilePath (GMT->parent, GMT_IS_DATASET, GMT_IN, GMT_FILE_REMOTE, &(Ctrl->E.file))) n_errors++;
 				if (c) c[0] = '+';
 				break;
 			case 'F':
 				Ctrl->F.active = true;	k = 0;
 				if (opt->arg[0] == '+') { Ctrl->F.mode = true; k = 1;}
-				if (gmt_check_filearg (GMT, 'F', &opt->arg[k], GMT_IN, GMT_IS_DATASET))
-					Ctrl->F.file  = strdup (&opt->arg[k]);
-				else
-					n_errors++;
+				if (opt->arg[k]) Ctrl->F.file = strdup (&opt->arg[k]);
+				if (GMT_Get_FilePath (GMT->parent, GMT_IS_DATASET, GMT_IN, GMT_FILE_REMOTE, &(Ctrl->F.file))) n_errors++;
 				break;
 			case 'L':
 				Ctrl->L.active = true;
@@ -401,10 +397,10 @@ EXTERN_MSC int GMT_originater (void *V_API, int mode, void *args) {
 
 	/*---------------------------- This is the originater main code ----------------------------*/
 
-	ns = spotter_hotspot_init (GMT, Ctrl->F.file, true, &orig_hotspot);	/* Get geocentric hotspot locations */
-	if (ns < 0) {
-		GMT_exit (GMT, GMT_RUNTIME_ERROR); Return (GMT_RUNTIME_ERROR);		/* An error message was already issued by spotter_hotspot_init() */
+	if ((ns = spotter_hotspot_init (GMT, Ctrl->F.file, true, &orig_hotspot)) < 0) {	/* Get geocentric hotspot locations */
+		Return (GMT_RUNTIME_ERROR);		/* An error message was already issued by spotter_hotspot_init() */
 	}
+	
 	n_hotspots = (unsigned int)ns;
 	if (Ctrl->S.n > n_hotspots) {
 		GMT_Report (API, GMT_MSG_ERROR, "Option -S: Give value between 1 and %d\n", n_hotspots);
@@ -446,7 +442,9 @@ EXTERN_MSC int GMT_originater (void *V_API, int mode, void *args) {
 		}
 	}
 
-	n_stages = spotter_init (GMT, Ctrl->E.file, &p, 1, false, Ctrl->E.mode, &Ctrl->N.t_upper);
+	if ((error = spotter_init (GMT, Ctrl->E.file, &p, 1, false, Ctrl->E.mode, &Ctrl->N.t_upper)) < 0)
+		Return (-error);
+	n_stages = (unsigned int)error;
 
 	hot = gmt_M_memory (GMT, NULL, n_hotspots, struct HOTSPOT_ORIGINATOR);
 
@@ -552,8 +550,8 @@ EXTERN_MSC int GMT_originater (void *V_API, int mode, void *args) {
 			for (spot = 0; spot < n_hotspots; spot++) {	/* For all hotspots */
 				if (hot[spot].D) {	/* Must interpolate drifting hotspot location at current time c[k+2] */
 					t = c[k+2];	/* Current time */
-					gmt_intpol (GMT, hot[spot].D->data[GMT_Z], hot[spot].D->data[GMT_X], hot[spot].D->n_rows, 1, &t, &lon, GMT->current.setting.interpolant);
-					gmt_intpol (GMT, hot[spot].D->data[GMT_Z], hot[spot].D->data[GMT_Y], hot[spot].D->n_rows, 1, &t, &lat, GMT->current.setting.interpolant);
+					gmt_intpol (GMT, hot[spot].D->data[GMT_Z], hot[spot].D->data[GMT_X], NULL, hot[spot].D->n_rows, 1, &t, &lon, 0.0, GMT->current.setting.interpolant);
+					gmt_intpol (GMT, hot[spot].D->data[GMT_Z], hot[spot].D->data[GMT_Y], NULL, hot[spot].D->n_rows, 1, &t, &lat, 0.0, GMT->current.setting.interpolant);
 				}
 				else {	/* Use the fixed hotspot location */
 					lon = hot[spot].h->lon;
@@ -572,8 +570,8 @@ EXTERN_MSC int GMT_originater (void *V_API, int mode, void *args) {
 
 			if (hot[spot].D) {	/* Must interpolate drifting hotspot location at current time c[k+2] */
 				t = c[3*hot[spot].nearest+3];	/* Time of closest approach */
-				gmt_intpol (GMT, hot[spot].D->data[GMT_Z], hot[spot].D->data[GMT_X], hot[spot].D->n_rows, 1, &t, &lon, GMT->current.setting.interpolant);
-				gmt_intpol (GMT, hot[spot].D->data[GMT_Z], hot[spot].D->data[GMT_Y], hot[spot].D->n_rows, 1, &t, &lat, GMT->current.setting.interpolant);
+				gmt_intpol (GMT, hot[spot].D->data[GMT_Z], hot[spot].D->data[GMT_X], NULL, hot[spot].D->n_rows, 1, &t, &lon, 0.0, GMT->current.setting.interpolant);
+				gmt_intpol (GMT, hot[spot].D->data[GMT_Z], hot[spot].D->data[GMT_Y], NULL, hot[spot].D->n_rows, 1, &t, &lat, 0.0, GMT->current.setting.interpolant);
 			}
 			else {	/* Use the fixed hotspot location */
 				lon = hot[spot].h->lon;

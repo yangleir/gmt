@@ -203,6 +203,8 @@ static int parse (struct GMT_CTRL *GMT, struct MAKECPT_CTRL *Ctrl, struct GMT_OP
 	char txt_a[GMT_LEN32] = {""}, txt_b[GMT_LEN32] = {""}, *c = NULL;
 	struct GMT_OPTION *opt = NULL;
 
+	for (opt = options; opt; opt = opt->next) if (opt->option == 'Q') Ctrl->Q.active = true;;	/* If -T given before -Q we need to flag -T+l */
+
 	for (opt = options; opt; opt = opt->next) {
 		switch (opt->option) {
 
@@ -248,7 +250,7 @@ static int parse (struct GMT_CTRL *GMT, struct MAKECPT_CTRL *Ctrl, struct GMT_OP
 				break;
 			case 'F':	/* Sets format for color reporting */
 				Ctrl->F.active = true;
-				if (gmt_validate_modifiers (GMT, opt->arg, 'F', "c")) n_errors++;
+				if (gmt_validate_modifiers (GMT, opt->arg, 'F', "c", GMT_MSG_ERROR)) n_errors++;
 				if (gmt_get_modifier (opt->arg, 'c', txt_a)) Ctrl->F.cat = true;
 				switch (opt->arg[0]) {
 					case 'r': Ctrl->F.model = GMT_RGB + GMT_NO_COLORNAMES; break;
@@ -353,6 +355,7 @@ static int parse (struct GMT_CTRL *GMT, struct MAKECPT_CTRL *Ctrl, struct GMT_OP
 	                                   "Options -W and -Z cannot be used simultaneously\n");
 	n_errors += gmt_M_check_condition (GMT, Ctrl->F.cat && Ctrl->Z.active,
 	                                   "Options -F+c and -Z cannot be used simultaneously\n");
+
 	if (!Ctrl->S.active) {
 		if (Ctrl->T.active && !Ctrl->T.interpolate && Ctrl->Z.active && (Ctrl->C.file == NULL || strchr (Ctrl->C.file, ',') == NULL)) {
 			GMT_Report (GMT->parent, GMT_MSG_WARNING, "Without inc in -T option, -Z has no effect (ignored)\n");
@@ -408,7 +411,7 @@ EXTERN_MSC int GMT_makecpt (void *V_API, int mode, void *args) {
 	}
 	else {	/* No table specified; set default table */
 		Ctrl->C.active = true;
-		Ctrl->C.file = strdup (GMT->init.cpt[0]);
+		Ctrl->C.file = strdup (GMT_DEFAULT_CPT_NAME);
 	}
 
 	GMT_Report (API, GMT_MSG_INFORMATION, "Prepare CPT via the master file %s\n", Ctrl->C.file);
@@ -565,6 +568,8 @@ EXTERN_MSC int GMT_makecpt (void *V_API, int mode, void *args) {
 		gmt_stretch_cpt (GMT, Pout, Ctrl->T.T.min, Ctrl->T.T.max);	/* Stretch to given range or use natural range if 0/0 */
 		if (Ctrl->I.mode & GMT_CPT_C_REVERSE)	/* Also flip the colors */
 			gmt_invert_cpt (GMT, Pout);
+		if (Ctrl->Q.mode == 1)
+			gmt_undo_log10 (GMT, Pout);
 	}
 
 	if (Pout == NULL) {	/* Meaning it was not created above */

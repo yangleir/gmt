@@ -148,11 +148,10 @@ static int parse (struct GMT_CTRL *GMT, struct GRDROTATER_CTRL *Ctrl, struct GMT
 		switch (opt->option) {
 
 			case '<':	/* Input files */
-				if (n_files++ > 0) break;
-				if ((Ctrl->In.active = gmt_check_filearg (GMT, '<', opt->arg, GMT_IN, GMT_IS_DATASET)) != 0)
-					Ctrl->In.file = strdup (opt->arg);
-				else
-					n_errors++;
+				if (n_files++ > 0) {n_errors++; continue; }
+				Ctrl->In.active = true;
+				if (opt->arg[0]) Ctrl->In.file = strdup (opt->arg);
+				if (GMT_Get_FilePath (GMT->parent, GMT_IS_DATASET, GMT_IN, GMT_FILE_REMOTE, &(Ctrl->In.file))) n_errors++;
 				break;
 
 			/* Supplemental parameters */
@@ -162,16 +161,14 @@ static int parse (struct GMT_CTRL *GMT, struct GRDROTATER_CTRL *Ctrl, struct GMT
 				n_errors += spotter_parse (GMT, opt->option, opt->arg, &(Ctrl->E.rot));
 				break;
 			case 'F':
-				if ((Ctrl->F.active = gmt_check_filearg (GMT, 'F', opt->arg, GMT_IN, GMT_IS_DATASET)) != 0)
-					Ctrl->F.file = strdup (opt->arg);
-				else
-					n_errors++;
+				Ctrl->F.active = true;
+				if (opt->arg[0]) Ctrl->F.file = strdup (opt->arg);
+				if (GMT_Get_FilePath (GMT->parent, GMT_IS_DATASET, GMT_IN, GMT_FILE_REMOTE, &(Ctrl->F.file))) n_errors++;
 				break;
 			case 'G':
-				if ((Ctrl->G.active = gmt_check_filearg (GMT, 'G', opt->arg, GMT_OUT, GMT_IS_GRID)) != 0)
-					Ctrl->G.file = strdup (opt->arg);
-				else
-					n_errors++;
+				Ctrl->G.active = true;
+				if (opt->arg[0]) Ctrl->G.file = strdup (opt->arg);
+				if (GMT_Get_FilePath (GMT->parent, GMT_IS_GRID, GMT_OUT, GMT_FILE_LOCAL, &(Ctrl->G.file))) n_errors++;
 				break;
 			case 'I':
 				n_errors += gmt_parse_inc_option (GMT, 'I', opt->arg);
@@ -330,8 +327,11 @@ EXTERN_MSC int GMT_grdpmodeler (void *V_API, int mode, void *args) {
 		}
 		spotter_setrot (GMT, &(p[0]));
 	}
-	else	/* Got a file or Gplates plate pair */
-		n_stages = spotter_init (GMT, Ctrl->E.rot.file, &p, 0, false, Ctrl->E.rot.invert, &Ctrl->N.t_upper);
+	else {	/* Got a file or Gplates plate pair */
+		if ((retval = spotter_init (GMT, Ctrl->E.rot.file, &p, 0, false, Ctrl->E.rot.invert, &Ctrl->N.t_upper)) < 0)
+			Return (-retval);
+		n_stages = (unsigned int)retval;
+	}
 	for (stage = 0; stage < n_stages; stage++) {
 		if (p[stage].omega < 0.0) {	/* Ensure all stages have positive rotation angles */
 			p[stage].omega = -p[stage].omega;
@@ -412,7 +412,8 @@ EXTERN_MSC int GMT_grdpmodeler (void *V_API, int mode, void *args) {
 	/* Loop over all nodes in the new rotated grid and find those inside the reconstructed polygon */
 
 
-	gmt_init_distaz (GMT, 'd', GMT_GREATCIRCLE, GMT_MAP_DIST);	/* Great circle distances in degrees */
+	if (gmt_init_distaz (GMT, 'd', GMT_GREATCIRCLE, GMT_MAP_DIST) == GMT_NOT_A_VALID_TYPE)	/* Great circle distances in degrees */
+		Return (GMT_NOT_A_VALID_TYPE);
 	if (Ctrl->S.center) GMT->current.io.geo.range = GMT_IS_M180_TO_P180_RANGE;	/* Need +- around 0 here */
 
 	gmt_M_grd_loop (GMT, G, row, col, node) {
@@ -452,7 +453,8 @@ EXTERN_MSC int GMT_grdpmodeler (void *V_API, int mode, void *args) {
 				case PM_DIST:	/* Compute great-circle distance between node and point of origin at ridge */
 					if (!spotted) {
 						lon = grd_x[col] * D2R;	lat = grd_yc[row] * D2R;
-						(void)spotter_backtrack (GMT, &lon, &lat, &age, 1U, p, n_stages, 0.0, 0.0, 0, NULL, NULL);
+						if (spotter_backtrack (GMT, &lon, &lat, &age, 1U, p, n_stages, 0.0, 0.0, 0, NULL, NULL) < 0)
+							Return (GMT_RUNTIME_ERROR);
 						spotted = true;
 					}
 					value = GMT->current.proj.DIST_KM_PR_DEG * gmt_distance (GMT, grd_x[col], grd_yc[row], lon * R2D, lat * R2D);
@@ -470,7 +472,8 @@ EXTERN_MSC int GMT_grdpmodeler (void *V_API, int mode, void *args) {
 					case PM_DLON:	/* Compute latitude where this point was formed in the model */
 					if (!spotted) {
 						lon = grd_x[col] * D2R;	lat = grd_yc[row] * D2R;
-						(void)spotter_backtrack (GMT, &lon, &lat, &age, 1U, p, n_stages, 0.0, 0.0, 0, NULL, NULL);
+						if (spotter_backtrack (GMT, &lon, &lat, &age, 1U, p, n_stages, 0.0, 0.0, 0, NULL, NULL) < 0)
+							Return (GMT_RUNTIME_ERROR);
 						spotted = true;
 					}
 					value = grd_x[col] - lon * R2D;
@@ -479,7 +482,8 @@ EXTERN_MSC int GMT_grdpmodeler (void *V_API, int mode, void *args) {
 				case PM_DLAT:	/* Compute latitude where this point was formed in the model */
 					if (!spotted) {
 						lon = grd_x[col] * D2R;	lat = grd_yc[row] * D2R;
-						(void)spotter_backtrack (GMT, &lon, &lat, &age, 1U, p, n_stages, 0.0, 0.0, 0, NULL, NULL);
+						if (spotter_backtrack (GMT, &lon, &lat, &age, 1U, p, n_stages, 0.0, 0.0, 0, NULL, NULL) < 0)
+							Return (GMT_RUNTIME_ERROR);
 						spotted = true;
 					}
 					value = grd_y[row] - gmt_lat_swap (GMT, lat * R2D, GMT_LATSWAP_O2G);	/* Convert back to geodetic */
@@ -487,7 +491,8 @@ EXTERN_MSC int GMT_grdpmodeler (void *V_API, int mode, void *args) {
 				case PM_LON:	/* Compute latitude where this point was formed in the model */
 					if (!spotted) {
 						lon = grd_x[col] * D2R;	lat = grd_yc[row] * D2R;
-						(void)spotter_backtrack (GMT, &lon, &lat, &age, 1U, p, n_stages, 0.0, 0.0, 0, NULL, NULL);
+						if (spotter_backtrack (GMT, &lon, &lat, &age, 1U, p, n_stages, 0.0, 0.0, 0, NULL, NULL) < 0)
+							Return (GMT_RUNTIME_ERROR);
 						spotted = true;
 					}
 					value = lon * R2D;
@@ -495,7 +500,8 @@ EXTERN_MSC int GMT_grdpmodeler (void *V_API, int mode, void *args) {
 				case PM_LAT:	/* Compute latitude where this point was formed in the model */
 					if (!spotted) {
 						lon = grd_x[col] * D2R;	lat = grd_yc[row] * D2R;
-						(void)spotter_backtrack (GMT, &lon, &lat, &age, 1U, p, n_stages, 0.0, 0.0, 0, NULL, NULL);
+						if (spotter_backtrack (GMT, &lon, &lat, &age, 1U, p, n_stages, 0.0, 0.0, 0, NULL, NULL) < 0)
+							Return (GMT_RUNTIME_ERROR);
 						spotted = true;
 					}
 					value = gmt_lat_swap (GMT, lat * R2D, GMT_LATSWAP_O2G);			/* Convert back to geodetic */

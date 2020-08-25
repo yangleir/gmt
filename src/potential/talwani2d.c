@@ -131,13 +131,13 @@ static int parse (struct GMT_CTRL *GMT, struct TALWANI2D_CTRL *Ctrl, struct GMT_
 		switch (opt->option) {
 
 			case '<':	/* Input file(s) */
-				if (!gmt_check_filearg (GMT, '<', opt->arg, GMT_IN, GMT_IS_DATASET)) n_errors++;
+				if (GMT_Get_FilePath (GMT->parent, GMT_IS_DATASET, GMT_IN, GMT_FILE_REMOTE, &(opt->arg))) n_errors++;;
 				break;
 			case '>':	/* Got named output file */
-				if (n_files++ == 0 && gmt_check_filearg (GMT, '>', opt->arg, GMT_OUT, GMT_IS_DATASET))
-					Ctrl->Out.file = strdup (opt->arg);
-				else
-					n_errors++;
+				if (n_files++ > 0) {n_errors++; continue; }
+				Ctrl->Out.active = true;
+				if (opt->arg[0]) Ctrl->Out.file = strdup (opt->arg);
+				if (GMT_Get_FilePath (GMT->parent, GMT_IS_DATASET, GMT_OUT, GMT_FILE_LOCAL, &(Ctrl->Out.file))) n_errors++;
 				break;
 
 			case 'A':	/* Specify z-axis is positive up [Default is down] */
@@ -741,7 +741,7 @@ EXTERN_MSC int GMT_talwani2d (void *V_API, int mode, void *args) {
 			}
 		}
 	}
-	if (GMT_Write_Data (API, GMT_IS_DATASET, GMT_IS_FILE, geometry, 0, NULL, Ctrl->Out.file, Out) != GMT_NOERROR)
+	if (GMT_Write_Data (API, GMT_IS_DATASET, GMT_IS_FILE, geometry, GMT_WRITE_NORMAL, NULL, Ctrl->Out.file, Out) != GMT_NOERROR)
 		error++;
 
 	/* Clean up memory */

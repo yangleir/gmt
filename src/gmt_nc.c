@@ -1520,6 +1520,7 @@ int gmt_nc_read_grd (struct GMT_CTRL *GMT, struct GMT_GRID_HEADER *header, gmt_g
 	bool adj_nan_value; /* if we need to change the fill value */
 	int err;            /* netcdf errors */
 	int n_shift;
+	int error;
 	unsigned dim[2], dim2[2], origin[2], origin2[2]; /* dimension and origin {y,x} of subset to read from netcdf */
 	unsigned width = 0, height = 0;
 	size_t width_t, height_t, row, stride_t;
@@ -1533,7 +1534,8 @@ int gmt_nc_read_grd (struct GMT_CTRL *GMT, struct GMT_GRID_HEADER *header, gmt_g
 	else if (GMT->session.grdformat[header->type][0] != 'n')
 		return (NC_ENOTNC);
 
-	gmt_M_err_fail (GMT, gmtnc_grd_prep_io (GMT, header, wesn, &width, &height, &n_shift, origin, dim, origin2, dim2), HH->name);
+	if ((error = gmt_M_err_fail (GMT, gmtnc_grd_prep_io (GMT, header, wesn, &width, &height, &n_shift, origin, dim, origin2, dim2), HH->name)))
+		return (error);
 
 	/* Set stride and offset if complex */
 	(void)gmtlib_init_complex (header, complex_mode, &imag_offset);	/* Set offset for imaginary complex component */
@@ -1683,6 +1685,7 @@ int gmt_nc_write_grd (struct GMT_CTRL *GMT, struct GMT_GRID_HEADER *header, gmt_
 	uint64_t imag_offset;
 	size_t n, nm;
 	size_t width_t, height_t;
+	size_t was_chunk_setting = GMT->current.setting.io_nc4_chunksize[0];	/* Remember current setting */
 	double limit[2];      /* minmax of z variable */
 	gmt_grdfloat *pgrid = NULL;
 	struct GMT_GRID_HEADER_HIDDEN *HH = gmt_get_H_hidden (header);
@@ -1803,6 +1806,8 @@ int gmt_nc_write_grd (struct GMT_CTRL *GMT, struct GMT_GRID_HEADER *header, gmt_
 	if (status != NC_NOERR)
 		goto nc_err;
 
+	GMT->current.setting.io_nc4_chunksize[0] = was_chunk_setting;	/* Restore to previous status */
+
 	return GMT_NOERROR;
 
 nc_err:
@@ -1881,15 +1886,13 @@ int gmt_examine_nc_cube (struct GMT_CTRL *GMT, char *file, uint64_t *nz, double 
 	return GMT_NOERROR;
 }
 
-/* Write a 3-D cube to file; cube is represented internally by a stack of 2-D grids */
+/* Write a 3-D cube to file; cube is represented internally by a stack of 2-D grids and a layer z-array */
 
-#define GMT_WRITE_CUBE_LAYERS 0
-
-int gmt_write_nc_cube (struct GMT_CTRL *GMT, struct GMT_GRID **G, uint64_t nlayers, double *layer, char *file, unsigned int mode) {
+int gmt_write_nc_cube (struct GMT_CTRL *GMT, struct GMT_GRID **G, uint64_t nlayers, double *layer, const char *file) {
 	/* Depending on mode, we either write individual layer grid files or a single 3-D data cube */
 	uint64_t k;
 
-	if (mode == GMT_WRITE_CUBE_LAYERS) {
+	if (strchr (file, '%')) {	/* Format specifier found, do individual layer grids */
 		char gfile[PATH_MAX] = {""};
 		for (k = 0; k < nlayers; k++) {
 			sprintf (gfile, file, layer[k]);

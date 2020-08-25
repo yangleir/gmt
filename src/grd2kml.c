@@ -205,12 +205,10 @@ static int parse (struct GMT_CTRL *GMT, struct GRD2KML_CTRL *Ctrl, struct GMT_OP
 			/* Common parameters */
 
 			case '<':	/* Input files */
-				if (gmt_check_filearg (GMT, '<', opt->arg, GMT_IN, GMT_IS_GRID) && n_files == 0) {
-					Ctrl->In.file = strdup (opt->arg);
-					n_files++;
-				}
-				else
-					n_errors++;
+				if (n_files++ > 0) {n_errors++; continue; }
+				Ctrl->In.active = true;
+				if (opt->arg[0]) Ctrl->In.file = strdup (opt->arg);
+				if (GMT_Get_FilePath (GMT->parent, GMT_IS_GRID, GMT_IN, GMT_FILE_REMOTE, &(Ctrl->In.file))) n_errors++;
 				break;
 
 			/* Processes program-specific parameters */
@@ -230,13 +228,9 @@ static int parse (struct GMT_CTRL *GMT, struct GRD2KML_CTRL *Ctrl, struct GMT_OP
 				break;
 			case 'C':	/* CPT */
 				Ctrl->C.active = true;
-				if ((c = strstr (opt->arg, "+i"))) {	/* Gave auto-interval */
-					Ctrl->C.dz = atof (&c[2]);
-					c[0] = '\0';	/* Temporarily chop off the modifier */
-				}
 				gmt_M_str_free (Ctrl->C.file);
-				Ctrl->C.file = strdup (opt->arg);
-				if (c) c[0] = '+';	/* Restore */
+				if (opt->arg[0]) Ctrl->C.file = strdup (opt->arg);
+				gmt_cpt_interval_modifier (GMT, &(Ctrl->C.file), &(Ctrl->C.dz));
 				break;
 			case 'D':	/* Debug options - may fade away when happy with the performance */
 				Ctrl->D.active = true;
@@ -281,7 +275,7 @@ static int parse (struct GMT_CTRL *GMT, struct GRD2KML_CTRL *Ctrl, struct GMT_OP
 					Ctrl->I.derive = true;
 				else if (!gmt_access (GMT, opt->arg, R_OK))	/* Got a file */
 					Ctrl->I.file = strdup (opt->arg);
-				else if (gmt_M_file_is_cache (opt->arg))	/* Got a remote file */
+				else if (gmt_M_file_is_remote (opt->arg))	/* Got a remote file */
 					Ctrl->I.file = strdup (opt->arg);
 				else if (opt->arg[0] && !gmt_not_numeric (GMT, opt->arg)) {	/* Looks like a constant value */
 					Ctrl->I.value = atof (opt->arg);
@@ -523,6 +517,8 @@ EXTERN_MSC int GMT_grd2kml (void *V_API, int mode, void *args) {
 
 	/*---------------------------- This is the grd2kml main code ----------------------------*/
 
+	gmt_grd_set_datapadding (GMT, true);	/* Turn on gridpadding when reading a subset */
+
 	uniq = (int)getpid();	/* Unique number for temporary files  */
 
 	/* Read grid header only to determine dimensions and required levels for the Pyramid */
@@ -575,7 +571,7 @@ EXTERN_MSC int GMT_grd2kml (void *V_API, int mode, void *args) {
 		Ctrl->I.file = strdup (file);
 		GMT_Report (API, GMT_MSG_INFORMATION, "Derive an intensity grid from data grid\n");
 		/* Prepare the grdgradient arguments using selected -A -N and the data region in effect */
-		sprintf (cmd, "%s -G%s -A%s -N%s --GMT_HISTORY=false", Ctrl->In.file, Ctrl->I.file, Ctrl->I.azimuth, Ctrl->I.method);
+		sprintf (cmd, "%s -G%s -A%s -N%s --GMT_HISTORY=readonly", Ctrl->In.file, Ctrl->I.file, Ctrl->I.azimuth, Ctrl->I.method);
 		/* Call the grdgradient module */
 		GMT_Report (API, GMT_MSG_INFORMATION, "Calling grdgradient with args %s\n", cmd);
 		if (GMT_Call_Module (API, "grdgradient", GMT_MODULE_CMD, cmd))
@@ -670,15 +666,16 @@ EXTERN_MSC int GMT_grd2kml (void *V_API, int mode, void *args) {
 	}
 
 	if (!Ctrl->C.active || gmt_is_cpt_master (GMT, Ctrl->C.file)) {	/* If no cpt given or just a master then we must compute a scaled one from the full-size grid and use it throughout */
-		unsigned int zmode = gmt_cpt_default (GMT, G->header);
+		char *cpt = gmt_cpt_default (API, Ctrl->C.file, Ctrl->In.file);
 		char cptfile[PATH_MAX] = {""};
 		struct GMT_PALETTE *P = NULL;
-		if ((P = gmt_get_palette (GMT, Ctrl->C.file, GMT_CPT_OPTIONAL, G->header->z_min, G->header->z_max, Ctrl->C.dz, zmode)) == NULL) {
+		if ((P = gmt_get_palette (GMT, cpt, GMT_CPT_OPTIONAL, G->header->z_min, G->header->z_max, Ctrl->C.dz)) == NULL) {
 			GMT_Report (API, GMT_MSG_ERROR, "Failed to create a CPT\n");
 			Return (API->error);	/* Well, that did not go well... */
 		}
+		if (cpt) gmt_M_str_free (cpt);
 		sprintf (cptfile, "%s/grd2kml_%d.cpt", API->tmp_dir, uniq);
-		if (GMT_Write_Data (API, GMT_IS_PALETTE, GMT_IS_FILE, GMT_IS_NONE, 0, NULL, cptfile, P) != GMT_NOERROR) {
+		if (GMT_Write_Data (API, GMT_IS_PALETTE, GMT_IS_FILE, GMT_IS_NONE, GMT_WRITE_NORMAL, NULL, cptfile, P) != GMT_NOERROR) {
 			Return (API->error);
 		}
 		Ctrl->C.active = tmp_cpt = true;
@@ -742,7 +739,7 @@ EXTERN_MSC int GMT_grd2kml (void *V_API, int mode, void *args) {
 			gmt_M_str_free (S->text[c]);	/* Free previous string */
 			S->text[c] = strdup (line);	/* Update string */
 		}
-		if (GMT_Open_VirtualFile (API, GMT_IS_DATASET, GMT_IS_NONE, GMT_IN, C, contour_file) != GMT_NOERROR) {
+		if (GMT_Open_VirtualFile (API, GMT_IS_DATASET, GMT_IS_NONE, GMT_IN|GMT_IS_REFERENCE, C, contour_file) != GMT_NOERROR) {
 			GMT_Report (API, GMT_MSG_ERROR, "Unable to create virtual file for contours\n");
 			gmt_M_free (GMT, Q);
 			GMT_Destroy_Data (API, &C);
@@ -851,7 +848,7 @@ EXTERN_MSC int GMT_grd2kml (void *V_API, int mode, void *args) {
 				if (use_tile) {	/* Found data inside this tile, make plot and rasterize (if PostScript) */
 					char z_data[GMT_VF_LEN] = {""}, psfile[PATH_MAX] = {""};
 					/* Open the grid subset as a virtual file we can pass to grdimage */
-					if (GMT_Open_VirtualFile (API, GMT_IS_GRID, GMT_IS_SURFACE, GMT_IN, T, z_data) == GMT_NOTSET) {
+					if (GMT_Open_VirtualFile (API, GMT_IS_GRID, GMT_IS_SURFACE, GMT_IN|GMT_IS_REFERENCE, T, z_data) == GMT_NOTSET) {
 						GMT_Report (API, GMT_MSG_ERROR, "Unable to open grid tile as virtual file!\n");
 						gmt_M_free (GMT, Q);
 						if (Ctrl->W.active) GMT_Destroy_Data (API, &C);

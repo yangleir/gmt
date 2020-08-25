@@ -235,7 +235,8 @@ Optional Arguments
     sets **-A** **-P**.
 
     Use **-W+k** to create a minimalist KML file that allows loading the
-    image in GoogleEarth. Note that for this option the image must be in
+    image in GoogleEarth. Note that for this option to work it is necessary that the postscript
+    image must have been created with **-JX** or **-Jx** cartesian projection of
     geographical coordinates. If not, a warning is issued but the KML
     file is created anyway. Several modifier options are available to
     customize the KML file in the form of **+**\ *opt* strings. Append
@@ -288,6 +289,8 @@ Optional Arguments
     5th elements contain the map limits, 6 to 9th the map limits in
     projected coordinates and the rest of the line has the regular **PROJ**
     string for this projection.
+
+.. _-Z:
 
 **-Z**
     Remove the input PostScript file(s) after the conversion.

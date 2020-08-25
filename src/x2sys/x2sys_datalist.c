@@ -151,16 +151,16 @@ static int parse (struct GMT_CTRL *GMT, struct X2SYS_DATALIST_CTRL *Ctrl, struct
 				Ctrl->F.flags = strdup (opt->arg);
 				break;
 			case 'I':
-				if ((Ctrl->I.active = gmt_check_filearg (GMT, 'I', opt->arg, GMT_IN, GMT_IS_DATASET)) != 0)
-					Ctrl->I.file = strdup (opt->arg);
-				else
-					n_errors++;
+				Ctrl->I.active = true;
+				if (opt->arg[0]) Ctrl->I.file = strdup (opt->arg);
+				if (GMT_Get_FilePath (GMT->parent, GMT_IS_DATASET, GMT_IN, GMT_FILE_REMOTE, &(Ctrl->I.file))) n_errors++;
 				break;
 			case 'L':	/* Crossover correction table */
-				if ((Ctrl->L.active = gmt_check_filearg (GMT, 'L', opt->arg, GMT_IN, GMT_IS_DATASET)) != 0)
+				Ctrl->L.active = true;
+				if (opt->arg[0]) {
 					Ctrl->L.file = strdup (opt->arg);
-				else
-					n_errors++;
+					if (GMT_Get_FilePath (GMT->parent, GMT_IS_DATASET, GMT_IN, GMT_FILE_REMOTE, &(Ctrl->L.file))) n_errors++;
+				}
 				break;
 			case 'S':
 				Ctrl->S.active = true;
@@ -274,12 +274,14 @@ EXTERN_MSC int GMT_x2sys_datalist (void *V_API, int mode, void *args) {
 	if (Ctrl->I.active && (k = x2sys_read_list (GMT, Ctrl->I.file, &ignore, &n_ignore)) != X2SYS_NOERROR) {
 		GMT_Report (API, GMT_MSG_ERROR, "Ignore file %s cannot be read - aborting\n", Ctrl->I.file);
 		x2sys_free_list (GMT, trk_name, n_tracks);
-		GMT_exit (GMT, GMT_RUNTIME_ERROR); return GMT_RUNTIME_ERROR;
+		Return (GMT_RUNTIME_ERROR);
 	}
 
-	x2sys_err_fail (GMT, x2sys_set_system (GMT, Ctrl->T.TAG, &s, &B, &GMT->current.io), Ctrl->T.TAG);
+	if (x2sys_err_fail (GMT, x2sys_set_system (GMT, Ctrl->T.TAG, &s, &B, &GMT->current.io), Ctrl->T.TAG))
+		Return (GMT_RUNTIME_ERROR);
 
-	if (Ctrl->F.flags) x2sys_err_fail (GMT, x2sys_pick_fields (GMT, Ctrl->F.flags, s), "-F");	/* Determine output order of selected columns */
+	if (Ctrl->F.flags && x2sys_err_fail (GMT, x2sys_pick_fields (GMT, Ctrl->F.flags, s), "-F"))	/* Determine output order of selected columns */
+		Return (GMT_RUNTIME_ERROR);
 
 	s->ascii_out = !GMT->common.b.active[1];
 
@@ -322,7 +324,7 @@ EXTERN_MSC int GMT_x2sys_datalist (void *V_API, int mode, void *args) {
 				GMT_Report (API, GMT_MSG_ERROR, "Unit m for miles is not recognized\n");
 				x2sys_end (GMT, s);
 				x2sys_free_list (GMT, trk_name, n_tracks);
-				GMT_exit (GMT, GMT_RUNTIME_ERROR); return GMT_RUNTIME_ERROR;
+				Return (GMT_RUNTIME_ERROR);
 				break;
 			}
 			/* Intentionally fall through */
@@ -360,7 +362,7 @@ EXTERN_MSC int GMT_x2sys_datalist (void *V_API, int mode, void *args) {
 				GMT_Report (API, GMT_MSG_ERROR, "Unit m for miles is not recognized\n");
 				x2sys_end (GMT, s);
 				x2sys_free_list (GMT, trk_name, n_tracks);
-				GMT_exit (GMT, GMT_RUNTIME_ERROR); return GMT_RUNTIME_ERROR;
+				Return (GMT_RUNTIME_ERROR);
 				break;
 			}
 			/* Intentionally fall through */
@@ -376,16 +378,18 @@ EXTERN_MSC int GMT_x2sys_datalist (void *V_API, int mode, void *args) {
 	}
 	t_scale = GMT->current.setting.time_system.scale;	/* Convert user's TIME_UNIT to seconds */
 
-	gmt_init_distaz (GMT, s->dist_flag ? GMT_MAP_DIST_UNIT : 'X', s->dist_flag, GMT_MAP_DIST);
+	if (gmt_init_distaz (GMT, s->dist_flag ? GMT_MAP_DIST_UNIT : 'X', s->dist_flag, GMT_MAP_DIST) == GMT_NOT_A_VALID_TYPE)
+		Return (GMT_NOT_A_VALID_TYPE);
 
 	if (Ctrl->L.active) {	/* Load an ephemeral correction table */
-		x2sys_get_corrtable (GMT, s, Ctrl->L.file, n_tracks, trk_name, NULL, aux, auxlist, &CORR);
+		if ((error = x2sys_get_corrtable (GMT, s, Ctrl->L.file, n_tracks, trk_name, NULL, aux, auxlist, &CORR)))
+			Return (error);
 		if (auxlist[MGD77_AUX_SP].requested && s->t_col == -1) {
 			GMT_Report (API, GMT_MSG_ERROR, "Selected correction table requires velocity which implies time (not selected)\n");
 			MGD77_Free_Correction (GMT, CORR, (unsigned int)n_tracks);
 			x2sys_end (GMT, s);
 			x2sys_free_list (GMT, trk_name, n_tracks);
-			GMT_exit (GMT, GMT_RUNTIME_ERROR); return GMT_RUNTIME_ERROR;
+			Return (GMT_RUNTIME_ERROR);
 		}
 	}
 	/* Override default GMT->current.io.col_type[GMT_OUT] settings */
@@ -474,7 +478,8 @@ EXTERN_MSC int GMT_x2sys_datalist (void *V_API, int mode, void *args) {
 
 		GMT_Report (API, GMT_MSG_INFORMATION, "Reading track %s\n", trk_name[trk_no]);
 
-		x2sys_err_fail (GMT, (s->read_file) (GMT, trk_name[trk_no], &data, s, &p, &GMT->current.io, &row), trk_name[trk_no]);
+		if (x2sys_err_fail (GMT, (s->read_file) (GMT, trk_name[trk_no], &data, s, &p, &GMT->current.io, &row), trk_name[trk_no]))
+			Return (GMT_RUNTIME_ERROR);
 
 		if (Ctrl->L.active && s->t_col >= 0) MGD77_Init_Correction (GMT, CORR[trk_no], data);	/* Initialize origins if needed */
 
@@ -519,7 +524,7 @@ EXTERN_MSC int GMT_x2sys_datalist (void *V_API, int mode, void *args) {
 			for (ocol = 0; ocol < s->n_out_columns; ocol++) {	/* Load output record one column at the time */
 				correction = (Ctrl->L.active) ? MGD77_Correction (GMT, CORR[trk_no][ocol].term, data, aux_dvalue, row) : 0.0;
 				if (Ctrl->A.active && adj_col[ocol]) {	/* Determine along-track adjustment */
-					if (gmt_intpol (GMT, A[ocol]->d, A[ocol]->c, A[ocol]->n, 1, &aux_dvalue[MGD77_AUX_DS], &adj_amount, GMT->current.setting.interpolant)) {
+					if (gmt_intpol (GMT, A[ocol]->d, A[ocol]->c, NULL, A[ocol]->n, 1, &aux_dvalue[MGD77_AUX_DS], &adj_amount, 0.0, GMT->current.setting.interpolant)) {
 						GMT_Report (API, GMT_MSG_ERROR, "Interpolating adjustment for %s near row %" PRIu64 " - no adjustment made!\n", s->info[s->out_order[ocol]].name, row);
 						adj_amount = 0.0;
 					}

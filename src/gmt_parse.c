@@ -86,7 +86,7 @@ GMT_LOCAL int gmtparse_B_arg_inspector (struct GMT_CTRL *GMT, char *in) {
 	int gmt4 = 0, gmt5 = 0, n_digits = 0, n_colons = 0, n_slashes = 0, colon_text = 0, wesn_at_end = 0;
 	bool ignore = false;	/* true if inside a colon-separated string under GMT4 style assumption */
 	bool ignore5 = false;	/* true if label, title, prefix, suffix */
-	bool custom = false;	/* True if -B[p|s][x|y|z]c<filename> was given; then we relax checing for .c (old second) */
+	bool custom = false;	/* True if -B[p|s][x|y|z]c<filename> was given; then we relax checking for .c (old second) */
 	char mod = 0;
 
 	if (!in || in[0] == 0) return (9);	/* Just a safety precaution, 9 means "either" syntax but it is an empty string */
@@ -124,10 +124,12 @@ GMT_LOCAL int gmtparse_B_arg_inspector (struct GMT_CTRL *GMT, char *in) {
 		if (ignore) continue;	/* Don't look inside a title or label */
 		switch (in[k]) {
 			case '/': if (mod == 0) n_slashes++; break;	/* Only GMT4 uses slashes */
-			case '+':	/* Plus, might be GMT5 modifier switch */
+			case '+':	/* Plus, might be a GMT5 modifier switch */
 				if      (k < last && in[k+1] == 'u') {mod = 'u'; ignore5 = true;  gmt5++;}	/* unit (suffix) settings */
 				else if (k < last && in[k+1] == 'b') {mod = 'b'; ignore5 = false; gmt5++;}	/* 3-D box settings */
 				else if (k < last && in[k+1] == 'g') {mod = 'g'; ignore5 = false; gmt5++;}	/* fill settings */
+				else if (k < last && in[k+1] == 'i') {mod = 'i'; ignore5 = false; gmt5++;}	/* internal annotation settings */
+				else if (k < last && in[k+1] == 'n') {mod = 'n'; ignore5 = true;  gmt5++;}	/* Turn off frames and annotations */
 				else if (k < last && in[k+1] == 'o') {mod = 'o'; ignore5 = false; gmt5++;}	/* oblique pole settings */
 				else if (k < last && in[k+1] == 'p') {mod = 'p'; ignore5 = true;  gmt5++;}	/* prefix settings */
 				else if (k < last && in[k+1] == 'l') {mod = 'l'; ignore5 = true;  gmt5++;}	/* Label */
@@ -135,7 +137,10 @@ GMT_LOCAL int gmtparse_B_arg_inspector (struct GMT_CTRL *GMT, char *in) {
 				else if (k < last && in[k+1] == 's') {mod = 's'; ignore5 = true;  gmt5++;}	/* Secondary label */
 				else if (k < last && in[k+1] == 'S') {mod = 'S'; ignore5 = true;  gmt5++;}	/* Forced horizontal Secondary lLabel */
 				else if (k < last && in[k+1] == 't') {mod = 't'; ignore5 = true;  gmt5++;}	/* title */
-				else if (k < last && in[k+1] == 'n') {mod = 'n'; ignore5 = true;  gmt5++;}	/* Turn off frames and annotations */
+				else if (k < last && in[k+1] == 'w') {mod = 'w'; ignore5 = false; gmt5++;}	/* Pen for walls */
+				else if (k < last && in[k+1] == 'x') {mod = 'x'; ignore5 = false; gmt5++;}	/* Paint for yz plane */
+				else if (k < last && in[k+1] == 'y') {mod = 'y'; ignore5 = false; gmt5++;}	/* Paint for xz plane */
+				else if (k < last && in[k+1] == 'z') {mod = 'z'; ignore5 = false; gmt5++;}	/* Paint for xy plane */
 				else if (k && (in[k-1] == 'Z' || in[k-1] == 'z')) {ignore5 = false; gmt4++;}	/* Z-axis with 3-D box */
 				break;
 			case 'c':	/* If following a number this is unit c for seconds in GMT4 */
@@ -279,7 +284,7 @@ GMT_LOCAL int gmtparse_complete_options (struct GMT_CTRL *GMT, struct GMT_OPTION
 	if (GMT->current.setting.run_mode == GMT_MODERN && n_B && check_B) {	/* Write gmt.frame file unless module is psscale, overwriting any previous file */
 		char file[PATH_MAX] = {""};
 		FILE *fp = NULL;
-		snprintf (file, PATH_MAX, "%s/gmt%d.%s/gmt.frame", GMT->parent->session_dir, GMT_MAJOR_VERSION, GMT->parent->session_name);
+		snprintf (file, PATH_MAX, "%s/gmt.frame", GMT->parent->gwf_dir);
 		if ((fp = fopen (file, "w")) == NULL) {
 			GMT_Report (GMT->parent, GMT_MSG_DEBUG, "Unable to create file %s\n", file);
 			return (-1);
@@ -354,7 +359,7 @@ GMT_LOCAL int gmtparse_complete_options (struct GMT_CTRL *GMT, struct GMT_OPTION
 			update_id = id = gmt_get_option_id (0, str);	/* If -R then we get id for RP */
 			if (id == GMT_NOTSET) Return;	/* Error: user gave shorthand option but there is no record in the history */
 			if (GMT->current.setting.run_mode == GMT_MODERN && opt->option == 'R') {	/* Must deal with both RP and RG under modern mode */
-				if (GMT->current.ps.active || !strncmp (GMT->init.module_name, "subplot", 7U) || !strncmp (GMT->init.module_name, "pscoast", 7U) || !strncmp (GMT->init.module_name, "psbasemap", 9U)) {	/* Plotting module plus special options to pscoast and psbasemap: First check RP if it exists */
+				if (gmtlib_module_may_get_R_from_RP (GMT, GMT->init.module_name)) {	/* First check -RP history */
 					if (!GMT->init.history[id]) id++;	/* No RP in the history, try RG next */
 				}
 				else {	/* Only try RG for non-plotting modules. RG follows RP in gmt_unique.h order [Modern mode only] */
@@ -572,7 +577,7 @@ struct GMT_OPTION *GMT_Create_Options (void *V_API, int n_args_in, const void *i
 		if (args[arg][0] == '=' && args[arg][1] && !gmt_access (API->GMT, &args[arg][1], F_OK)) {	/* Gave a file list which we must expand into options */
 			char **flist = NULL;
 			uint64_t n_files, f;
-			n_files = gmtlib_read_list (API->GMT, &args[arg][1], &flist);
+			n_files = gmt_read_list (API->GMT, &args[arg][1], &flist);
 			if ((new_opt = GMT_Make_Option (API, '=', &args[arg][1])) == NULL)	/* Make option with the listing name flagged as option -= */
 				return_null (API, error);	/* Create the new option structure given the args, or return the error */
 			head = GMT_Append_Option (API, new_opt, head);		/* Hook new option to the end of the list (or initiate list if head == NULL) */
@@ -584,7 +589,7 @@ struct GMT_OPTION *GMT_Create_Options (void *V_API, int n_args_in, const void *i
 				new_opt = gmtparse_fix_gdal_files (new_opt);
 				head = GMT_Append_Option (API, new_opt, head);		/* Hook new option to the end of the list (or initiate list if head == NULL) */
 			}
-			gmtlib_free_list (API->GMT, flist, n_files);
+			gmt_free_list (API->GMT, flist, n_files);
 			continue;
 		}
 		else if (args[arg][0] == '<' && !args[arg][1] && (arg+1) < n_args && args[arg+1][0] != '-')	/* string command with "< file" for input */
@@ -812,6 +817,7 @@ char *GMT_Create_Cmd (void *V_API, struct GMT_OPTION *head) {
 
 	char *txt = NULL, *c = NULL, buffer[GMT_BUFSIZ] = {""};
 	bool first = true, skip_infiles = false;
+	int k_data;
 	size_t length = 0, inc, n_alloc = GMT_BUFSIZ;
 	struct GMT_OPTION *opt = NULL;
 	struct GMT_CTRL *G = NULL;
@@ -834,10 +840,11 @@ char *GMT_Create_Cmd (void *V_API, struct GMT_OPTION *head) {
 		}
 		else if (opt->option == GMT_OPT_INFILE)	{	/* Option for input filename [or numbers] */
 			if (skip_infiles) continue;
-			if (gmtlib_file_is_srtmlist (API, opt->arg))	/* Want to replace the srtm list with the original @earth_relief_xxx name instead */
-				snprintf (buffer, GMT_BUFSIZ, "@earth_relief_0%cs", opt->arg[strlen(opt->arg)-8]);
-			else if (gmt_M_file_is_remotedata (opt->arg) && (c = strstr (opt->arg, ".grd"))) {
-				c[0] = '\0';
+			if (gmt_file_is_tiled_list (API, opt->arg, &k_data, NULL, NULL)) {	/* Want to replace the tiled list with the original @remotefile name instead */
+				snprintf (buffer, GMT_BUFSIZ, "@%s", API->remote_info[k_data].file);
+			}
+			else if ((k_data = gmt_remote_dataset_id (API, opt->arg)) != GMT_NOTSET && API->remote_info[k_data].ext[0] && (c = strstr (opt->arg, API->remote_info[k_data].ext))) {
+				c[0] = '\0';	/* Remove extension on remote file */
 				snprintf (buffer, GMT_BUFSIZ, "%s", opt->arg);
 				c[0] = '.';
 			}

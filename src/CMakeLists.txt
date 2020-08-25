@@ -142,6 +142,7 @@ include_directories (${NETCDF_INCLUDE_DIR})
 find_package (CURL REQUIRED)
 include_directories (${CURL_INCLUDE_DIRS})
 list (APPEND GMT_OPTIONAL_LIBRARIES ${CURL_LIBRARIES})
+set (CURL_LIBRARY ${CURL_LIBRARIES} CACHE INTERNAL "")
 
 if (NOT DEFINED GMT_EXCLUDE_GDAL)
 	find_package (GDAL)
@@ -151,6 +152,15 @@ if (GDAL_FOUND)
 	include_directories (${GDAL_INCLUDE_DIR})
 	list (APPEND GMT_OPTIONAL_LIBRARIES ${GDAL_LIBRARIES})
 endif (GDAL_FOUND)
+
+if (NOT DEFINED GMT_EXCLUDE_GEOS)
+	find_package (GEOS)
+endif (NOT DEFINED GMT_EXCLUDE_GEOS)
+if (GEOS_FOUND OR GEOS_LIBRARY)			# Because it fails to find GEOS on Win so I rely on ConfigUser.cmake settings
+	set (HAVE_GEOS TRUE CACHE INTERNAL "System has GEOS")
+	include_directories (${GEOS_INCLUDE_DIR})
+	list (APPEND GMT_OPTIONAL_LIBRARIES ${GEOS_LIBRARY})
+endif (GEOS_FOUND OR GEOS_LIBRARY)
 
 if (NOT DEFINED GMT_EXCLUDE_PCRE)
 	find_package (PCRE)
@@ -242,6 +252,7 @@ if (ZLIB_FOUND)
 	set (HAVE_ZLIB TRUE CACHE INTERNAL "System has ZLIB")
 	include_directories (${ZLIB_INCLUDE_DIRS})
 	list (APPEND GMT_OPTIONAL_LIBRARIES ${ZLIB_LIBRARY})
+	set (ZLIB_LIBRARY ${ZLIB_LIBRARY} CACHE INTERNAL "")
 endif (ZLIB_FOUND)
 
 if (APPLE)
@@ -292,22 +303,10 @@ endif (GMT_USE_THREADS AND NOT GLIB_FOUND)
 
 
 ##
-##	Find GSHHG and DCW data needed by GMT
-##
-# Examples and tests depend on Shorelines
+##	Find pre-downloaded/pre-installed GSHHG and DCW data
+##  Will be automatically downloaded to user directory if not found during installing
 find_package (GSHHG)
-if (DO_EXAMPLES OR DO_TESTS AND NOT GSHHG_FOUND)
-	message (FATAL_ERROR "Cannot proceed without GSHHG Shorelines. "
-		"Need to either set GSHHG_ROOT or disable tests.")
-endif (DO_EXAMPLES OR DO_TESTS AND NOT GSHHG_FOUND)
-
-# Examples and tests depend on DCW
 find_package (DCW)
-if (DO_EXAMPLES OR DO_TESTS AND NOT DCW_FOUND)
-	message (FATAL_ERROR "Cannot proceed without DCW polygons. "
-		"Need to either set DCW_ROOT or disable tests."
-		"Obtain dcw-gmt-<version>.tar.gz from ftp://ftp.soest.hawaii.edu/gmt and make DCW_ROOT variable point to the directory where you unarchived the files")
-endif (DO_EXAMPLES OR DO_TESTS AND NOT DCW_FOUND)
 
 
 ##
@@ -347,22 +346,21 @@ set (SHARED_LIB_PURPOSE "GMT ${SHARED_LIB_NAME}: The main modules of the Generic
 set (GMT_PROGRAM ${GMT_SOURCE_DIR}/src/gmtprogram.c)
 
 # Legacy modules for which to install compatibility links via install_module_symlink
-set (GMT_COMPAT_MODULES minmax gmtstitch gmtdp grdreformat ps2raster originator PARENT_SCOPE)
+set (GMT_COMPAT_MODULES minmax gmtdp gmtstitch grdreformat ps2raster originator PARENT_SCOPE)
 
 # gmt core modules
-set (GMT_PROGS_SRCS blockmean.c blockmedian.c blockmode.c docs.c dimfilter.c filter1d.c grd2kml.c
-	fitcircle.c gmt2kml.c gmtconvert.c gmtlogo.c gmtmath.c gmtselect.c gmtsimplify.c
-	gmtspatial.c gmtconnect.c grdgdal.c gmtregress.c gmtvector.c gmtwhich.c grd2cpt.c
-	grd2xyz.c grdblend.c grdclip.c grdcut.c grdedit.c grdfft.c grdfill.c grdfilter.c
-	grdgradient.c grdhisteq.c grdinfo.c grdinterpolate.c grdlandmask.c grdmask.c grdmath.c
-	grdpaste.c grdproject.c grdsample.c grdconvert.c grdtrack.c movie.c
-	grdtrend.c grdvolume.c greenspline.c kml2gmt.c makecpt.c mapproject.c
-	gmtinfo.c nearneighbor.c project.c psconvert.c sample1d.c spectrum1d.c
-	sph2grd.c sphdistance.c sphinterpolate.c sphtriangulate.c splitxyz.c
-	surface.c trend1d.c trend2d.c triangulate.c xyz2grd.c gmtdefaults.c gmtget.c
-	gmtset.c grdcontour.c grdimage.c grdvector.c grdview.c psbasemap.c psclip.c
-	pscoast.c pscontour.c psevents.c pshistogram.c psimage.c psmask.c psrose.c psscale.c
-	pssolar.c psternary.c pstext.c pswiggle.c psxy.c psxyz.c pslegend.c)
+set (GMT_PROGS_SRCS batch.c blockmean.c blockmedian.c blockmode.c dimfilter.c docs.c filter1d.c
+	fitcircle.c gmt2kml.c  gmtbinstats.c gmtconnect.c gmtconvert.c gmtdefaults.c gmtget.c gmtinfo.c gmtlogo.c
+	gmtmath.c gmtselect.c gmtsimplify.c gmtspatial.c gmtregress.c gmtset.c gmtvector.c gmtwhich.c
+	grd2cpt.c grd2kml.c grd2xyz.c grdblend.c grdclip.c grdcontour.c grdconvert.c grdcut.c grdedit.c
+	grdfft.c grdfill.c grdfilter.c grdgdal.c grdgradient.c grdhisteq.c grdimage.c grdinfo.c
+	grdinterpolate.c grdlandmask.c grdmask.c grdmath.c grdmix.c grdpaste.c grdproject.c grdsample.c
+	grdtrack.c grdtrend.c grdvector.c grdview.c grdvolume.c greenspline.c kml2gmt.c makecpt.c
+	mapproject.c movie.c nearneighbor.c project.c psbasemap.c psclip.c pscoast.c pscontour.c
+	psconvert.c psevents.c pshistogram.c psimage.c pslegend.c psmask.c psrose.c psscale.c
+	pssolar.c psternary.c pstext.c pswiggle.c psxy.c psxyz.c sample1d.c spectrum1d.c sph2grd.c
+	sphdistance.c sphinterpolate.c sphtriangulate.c splitxyz.c surface.c trend1d.c trend2d.c
+	triangulate.c xyz2grd.c)
 
 # libpslib
 set (GMT_PSL_SRCS postscriptlight.c declspec.h psl_config.h PSL_Standard+.h
@@ -394,7 +392,7 @@ set (GMT_LIB_SRCS block_subs.h gmt_common_byteswap.h gmt_common_math.h
 	gmt_stat.c gmt_support.c gmt_regexp.c gmt_vector.c gmt_parse.c inset.c
 	gmt_error_codes.c gshhg_version.c gmtread.c gmtwrite.c gmt_common_math.c
 	gmt_common_runpath.c gmt_common_sighandler.c gmt_common_string.c compat/qsort.c
-	gmt_sharedlibs.c  gmt_init.c gmt_map.c gmt_plot.c gmt_gdal_librarified.c
+	gmt_sharedlibs.c  gmt_init.c gmt_map.c gmt_plot.c gmt_gdalcall.c
 	${CMAKE_CURRENT_BINARY_DIR}/gmt_${SHARED_LIB_NAME}_moduleinfo.h
 	${CMAKE_CURRENT_BINARY_DIR}/gmt_sharedlibs.h
 	${CMAKE_CURRENT_BINARY_DIR}/gmt_${SHARED_LIB_NAME}_glue.c
@@ -433,7 +431,7 @@ add_custom_command (OUTPUT gmt_dimensions.h
 	-P ${CMAKE_MODULE_PATH}/GmtGenExtraHeaders.cmake
 	# depends on cached line numbers from these header files
 	DEPENDS gmt_media_name.h gmt_pennames.h gmt_unique.h gmt_ellipsoids.h
-	gmt_datums.h gmt_colornames.h gmt_cpt_masters.h gmt_datasets.h
+	gmt_datums.h gmt_colornames.h gmt_cpt_masters.h
 	gmt_keycases.h)
 
 # generate gmt_core_moduleinfo.h
@@ -660,7 +658,7 @@ if (BUILD_DEVELOPER)
 		gmt_dcw.h gmt_decorate.h gmt_defaults.h gmt_error.h gmt_error_codes.h gmt_fft.h gmt_gdalread.h gmt_grd.h
 		gmt_grdio.h gmt_hash.h gmt_io.h gmt_macros.h gmt_memory.h gmt_modern.h gmt_nan.h gmt_notposix.h gmt_plot.h
 		gmt_private.h gmt_project.h gmt_prototypes.h gmt_psl.h gmt_shore.h gmt_symbol.h gmt_synopsis.h
-		gmt_texture.h gmt_time.h gmt_types.h gmt_dev.h gmt_customio.h gmt_hidden.h gmt_mb.h
+		gmt_texture.h gmt_time.h gmt_types.h gmt_dev.h gmt_customio.h gmt_hidden.h gmt_mb.h gmt_remote.h
 		DESTINATION ${GMT_INCLUDEDIR}
 		COMPONENT Runtime)
 	install (FILES compat/qsort.h

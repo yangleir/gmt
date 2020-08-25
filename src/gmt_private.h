@@ -143,12 +143,15 @@ struct GMTAPI_CTRL {
 	bool usage;				/* Flag when 1-liner modern mode modules just want usage */
 	bool allow_reuse;				/* Flag when get_region_from_data can read a file and not flag it as "used" */
 	bool is_file;					/* True if current rec-by-rec i/o is from a physical file */
+	bool cache;					/* true if we want to read a cache file via GDAL */
+	bool no_history;					/* true if we want to disable the gmt.history mechanism */
 	size_t n_objects_alloc;			/* Allocation counter for data objects */
 	int error;				/* Error code from latest API call [GMT_OK] */
 	int last_error;				/* Error code from previous API call [GMT_OK] */
 	int shelf;				/* Place to pass hidden values within API */
 	unsigned int log_level;			/* 0 = stderr, 1 = just this module, 2 = set until unset */
 	unsigned int io_mode[2];		/* 1 if access as set, 0 if record-by-record */
+	double tile_wesn[GMTAPI_N_GRID_ARGS];	/* Original region used when getting tiles (perhaps result of -Roblique -J) */
 	struct GMT_CTRL *GMT;			/* Key structure with low-level GMT internal parameters */
 	struct GMTAPI_DATA_OBJECT **object;	/* List of registered data objects */
 	char *session_tag;			/* Name tag for this session (or NULL) */
@@ -198,13 +201,18 @@ struct GMTAPI_CTRL {
 	GMT_getfunction *current_get_V_val;
 	/* These are used for -O -K -P -c and set to blank under modern/classic modes */
 	char *O_OPT, *K_OPT, *P_OPT, *c_OPT;
+	/* structure array of remote file information (sorted alphabetically) */
+	int n_remote_info;	/* How many remote server files we know of */
+	struct GMT_DATA_INFO *remote_info;
+	bool server_announced;	/* Set to true after we have announced which GMT data server we are using */
 };
 
 /* Macro to test if filename is a special name indicating memory location */
 
 #define GMTAPI_PREFIX_LEN 9U		/* The length of the unique leading prefix of virtual filenames */
+#define GMTAPI_MEMFILE_LEN 27U		/* The length of the virtual filenames (see gmtapi_encode_id) */
 #define GMTAPI_OBJECT_ID_START 21U	/* Start position of the encoded object ID in the virtual filename */
-#define gmt_M_file_is_memory(file) (file && !strncmp (file, "@GMTAPI@-", GMTAPI_PREFIX_LEN))
+#define gmt_M_file_is_memory(file) (file && !strncmp (file, "@GMTAPI@-", GMTAPI_PREFIX_LEN) && strlen (file) == GMTAPI_MEMFILE_LEN)
 
 #ifdef __cplusplus
 }

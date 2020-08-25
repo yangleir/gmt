@@ -86,7 +86,7 @@ static int usage (struct GMTAPI_CTRL *API, int level) {
 	GMT_Message (API, GMT_TIME_NONE, "\t   Use -Ci to write grid index instead of (x,y).\n");
 	GMT_Option (API, "R,V");
 	GMT_Message (API, GMT_TIME_NONE, "\t-W Write xyzw using supplied weight (or 1 if not given) [Default is xyz].\n");
-	GMT_Message (API, GMT_TIME_NONE, "\t   Select -Wa to compute weights equal to the node areas\n");
+	GMT_Message (API, GMT_TIME_NONE, "\t   Select -Wa to compute weights equal to the node areas.\n");
 	GMT_Message (API, GMT_TIME_NONE, "\t-Z Set exact specification of resulting 1-column output z-table.\n");
 	GMT_Message (API, GMT_TIME_NONE, "\t   If data is in row format, state if first row is at T(op) or B(ottom).\n");
 	GMT_Message (API, GMT_TIME_NONE, "\t     Then, append L or R to indicate starting point in row.\n");
@@ -154,12 +154,9 @@ static int parse (struct GMT_CTRL *GMT, struct GRD2XYZ_CTRL *Ctrl, struct GMT_Z_
 				break;
 			case 'S':	/* Suppress/no-suppress NaNs on output */
 				if (gmt_M_compat_check (GMT, 4)) {
-					GMT_Report (API, GMT_MSG_COMPAT, "Option -S is deprecated; use -s instead.\n");
-					gmt_M_memset (GMT->current.io.io_nan_col, GMT_MAX_COLUMNS, int);
-					GMT->current.io.io_nan_col[0] = GMT_Z;	/* The default is to examine the z-column */
-					GMT->current.io.io_nan_ncols = GMT_IO_NAN_SKIP;		/* Default is that single z column */
-					GMT->current.setting.io_nan_mode = 1;	/* Plain -S */
-					if (opt->arg[0] == 'r') GMT->current.setting.io_nan_mode = GMT_IO_NAN_KEEP;	/* Old -Sr */
+					GMT_Report (API, GMT_MSG_COMPAT, "Option -S is deprecated; use -s common option instead.\n");
+					if (gmt_parse_s_option (GMT, opt->arg))
+						n_errors++;
 					GMT->common.s.active = true;
 				}
 				else
@@ -203,7 +200,7 @@ static int parse (struct GMT_CTRL *GMT, struct GRD2XYZ_CTRL *Ctrl, struct GMT_Z_
 		}
 	}
 
-	if (Ctrl->Z.active) gmt_init_z_io (GMT, Ctrl->Z.format, Ctrl->Z.repeat, Ctrl->Z.swab, Ctrl->Z.skip, Ctrl->Z.type, io);
+	if (Ctrl->Z.active) n_errors += gmt_init_z_io (GMT, Ctrl->Z.format, Ctrl->Z.repeat, Ctrl->Z.swab, Ctrl->Z.skip, Ctrl->Z.type, io);
 
 	n_errors += gmt_M_check_condition (GMT, n_files == 0, "Must specify at least one input file\n");
 	n_errors += gmt_M_check_condition (GMT, n_files > 1 && Ctrl->E.active, "Option -E can only handle one input file\n");
@@ -299,8 +296,10 @@ EXTERN_MSC int GMT_grd2xyz (void *V_API, int mode, void *args) {
 			Return (API->error);
 		}
 
-		if (gmt_M_is_subset (GMT, G->header, wesn))	/* Subset requested; make sure wesn matches header spacing */
-			gmt_M_err_fail (GMT, gmt_adjust_loose_wesn (GMT, wesn, G->header), "");
+		if (gmt_M_is_subset (GMT, G->header, wesn)) {	/* Subset requested; make sure wesn matches header spacing */
+			if ((error = gmt_M_err_fail (GMT, gmt_adjust_loose_wesn (GMT, wesn, G->header), "")))
+				Return (error);
+		}
 
 		if (GMT_Read_Data (API, GMT_IS_GRID, GMT_IS_FILE, GMT_IS_SURFACE, GMT_DATA_ONLY, wesn, opt->arg, G) == NULL) {
 			Return (API->error);	/* Get subset */
@@ -310,7 +309,8 @@ EXTERN_MSC int GMT_grd2xyz (void *V_API, int mode, void *args) {
 
 		n_total += G->header->nm;
 
-		gmt_M_err_fail (GMT, gmt_set_z_io (GMT, &io, G), opt->arg);
+		if ((error = gmt_M_err_fail (GMT, gmt_set_z_io (GMT, &io, G), opt->arg)))
+			Return (error);
 
 		if (Ctrl->Z.active) {	/* Write z-values only to stdout */
 			bool previous = GMT->common.b.active[GMT_OUT], rst = false;
@@ -486,7 +486,7 @@ EXTERN_MSC int GMT_grd2xyz (void *V_API, int mode, void *args) {
 
 	GMT_Report (API, GMT_MSG_INFORMATION, "%" PRIu64 " values extracted\n", n_total - n_suppressed);
 	if (n_suppressed) {
-		if (GMT->current.setting.io_nan_mode == GMT_IO_NAN_KEEP)
+		if (GMT->current.setting.io_nan_mode & GMT_IO_NAN_KEEP)
 			GMT_Report (API, GMT_MSG_INFORMATION, "%" PRIu64 " finite values suppressed\n", n_suppressed);
 		else
 			GMT_Report (API, GMT_MSG_INFORMATION, "%" PRIu64" NaN values suppressed\n", n_suppressed);

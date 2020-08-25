@@ -108,7 +108,7 @@ static int parse (struct GMT_CTRL *GMT, struct GMTSIMPLIFY_CTRL *Ctrl, struct GM
 		switch (opt->option) {
 
 			case '<':	/* Skip input files */
-				if (!gmt_check_filearg (GMT, '<', opt->arg, GMT_IN, GMT_IS_DATASET)) n_errors++;
+				if (GMT_Get_FilePath (GMT->parent, GMT_IS_DATASET, GMT_IN, GMT_FILE_REMOTE, &(opt->arg))) n_errors++;;
 				break;
 			case '>':	/* Write to named output file instead of stdout */
 				Ctrl->Out.active = true;
@@ -330,7 +330,8 @@ EXTERN_MSC int GMT_gmtsimplify (void *V_API, int mode, void *args) {
 	geo = gmt_M_is_geographic (GMT, GMT_IN);					/* true for lon/lat coordinates */
 	if (!geo && strchr (GMT_LEN_UNITS, (int)Ctrl->T.unit)) geo = true;	/* Used units but did not set -fg; implicitly set -fg via geo */
 
-	gmt_init_distaz (GMT, Ctrl->T.unit, Ctrl->T.mode, GMT_MAP_DIST);	/* Initialize distance scalings according to unit selected */
+	if (gmt_init_distaz (GMT, Ctrl->T.unit, Ctrl->T.mode, GMT_MAP_DIST) == GMT_NOT_A_VALID_TYPE)	/* Initialize distance scalings according to unit selected */
+		Return (GMT_NOT_A_VALID_TYPE);
 
 	/* Convert tolerance to degrees [or leave as Cartesian] */
 	/* We must do this here since gmtsimplify_douglas_peucker_geog is doing its own thing and cannot use gmt_distance yet */
@@ -369,7 +370,7 @@ EXTERN_MSC int GMT_gmtsimplify (void *V_API, int mode, void *args) {
 		for (seg_in = seg_out = 0; seg_in < D[GMT_IN]->table[tbl]->n_segments; seg_in++) {
 			S[GMT_IN]  = D[GMT_IN]->table[tbl]->segment[seg_in];
 			/* If input segment is a closed polygon then the simplified segment must have at least 4 points, else 3 is enough */
-			poly = (!gmt_polygon_is_open (GMT, S[GMT_IN]->data[GMT_X], S[GMT_IN]->data[GMT_Y], S[GMT_IN]->n_rows));
+			poly = (S[GMT_IN]->n_rows > 2 && !gmt_polygon_is_open (GMT, S[GMT_IN]->data[GMT_X], S[GMT_IN]->data[GMT_Y], S[GMT_IN]->n_rows));
 			index = gmt_M_memory (GMT, NULL, S[GMT_IN]->n_rows, uint64_t);
 			np_out = gmtsimplify_douglas_peucker_geog (GMT, S[GMT_IN]->data[GMT_X], S[GMT_IN]->data[GMT_Y], S[GMT_IN]->n_rows, tolerance, geo, index);
 			skip = ((poly && np_out < 4) || (np_out == 2 && S[GMT_IN]->data[GMT_X][index[0]] == S[GMT_IN]->data[GMT_X][index[1]] && S[GMT_IN]->data[GMT_Y][index[0]] == S[GMT_IN]->data[GMT_Y][index[1]]));

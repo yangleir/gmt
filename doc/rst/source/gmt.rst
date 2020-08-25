@@ -11,7 +11,7 @@ gmt
 Introduction
 ------------
 
-GMT is a collection of public-domain Unix tools that allows you to
+GMT is a collection of freely available command-line tools under the GNU LGPL that allows you to
 manipulate x,y and x,y,z data sets (filtering, trend fitting, gridding,
 projecting, etc.) and produce illustrations ranging from
 simple x-y plots, via contour maps, to artificially illuminated surfaces
@@ -95,6 +95,9 @@ If no module is given then several other options are available:
 **--show-classic**
     List classic module names on stdout and exit.
 
+**--show-classic-core**
+    List classic module names (core only) on stdout and exit.
+
 **--show-cores**
     Show number of available cores.
 
@@ -110,6 +113,9 @@ If no module is given then several other options are available:
 **--show-modules**
     List modern module names on stdout and exit.
 
+**--show-modules-core**
+    List modern module names (core only) on stdout and exit.
+
 **--show-library**
     Show the path of the shared GMT library.
 
@@ -118,6 +124,9 @@ If no module is given then several other options are available:
 
 **--show-sharedir**
     Show share directory and exit.
+
+**--show-userdir**
+    Show full path of user's ~/.gmt dir and exit.
 
 **--version**
     Print version and exit.

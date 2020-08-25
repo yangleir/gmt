@@ -243,16 +243,20 @@ FORMAT Parameters
         By default, longitudes will be reported in the range [-180,180]. The
         various terms have the following purpose:
 
-        - **D**: Use :term:`FORMAT_FLOAT_OUT` for floating point degrees [default].
-        - **+D**: Output longitude in the range [0,360]
-        - **-D**: Output longitude in the range [-360,0]
-        - **ddd**: Fixed format integer degrees
-        - **:**: delimiter used
-        - **mm**: Fixed format integer arc minutes
-        - **ss**: Fixed format integer arc seconds
-        - **.xxx**: Floating fraction of previous integer field, fixed width.
-        - **F**: Encode sign using WESN suffix
-        - **G**: Same as **F** but with a leading space before suffix
+        ========   =================================================================
+        Term       Purpose
+        ========   =================================================================
+        **D**      Use :term:`FORMAT_FLOAT_OUT` for floating point degrees [default]
+        **+D**     Output longitude in the range [0,360]
+        **-D**     Output longitude in the range [-360,0]
+        **ddd**    Fixed format integer degrees
+        **:**      Delimiter used
+        **mm**     Fixed format integer arc minutes
+        **ss**     Fixed format integer arc seconds
+        **.xxx**   Floating fraction of previous integer field, fixed width
+        **F**      Encode sign using WESN suffix
+        **G**      Same as **F** but with a leading space before suffix
+        ========   =================================================================
 
     **FORMAT_FLOAT_MAP**
         Format (C language printf syntax) to be used when plotting double
@@ -319,6 +323,11 @@ GMT Miscellaneous Parameters
         Upper limit on the size of remote file to download [unlimited].  Give
         the maximum file size in bytes, or append k, m, or g for kilo-, mega-,
         or giga-bytes.
+
+    **GMT_DATA_UPDATE_INTERVAL**
+        Specifies how often we update the local catalog of data available on
+        the remote server and pruning expired data sets [1d].  Allowable time
+        units are **d** (days), **w** (week), **o** (month, here 30 days).
 
     **GMT_EXPORT_TYPE**
         This setting is only used by external interfaces and controls the
@@ -572,20 +581,18 @@ MAP Parameters
         occur for certain oblique projections.) [0p]
 
     **MAP_ANNOT_OBLIQUE**
-        This integer is a sum of 6 bit flags (most of which only are
-        relevant for oblique projections): If bit 1 is set (1),
-        annotations will occur wherever a gridline crosses the map
-        boundaries, else longitudes will be annotated on the lower and upper
-        boundaries only, and latitudes will be annotated on the left and
-        right boundaries only. If bit 2 is set (2), then
-        longitude annotations will be plotted horizontally. If bit 3 is set
-        (4), then latitude annotations will be plotted
-        horizontally. If bit 4 is set (8), then oblique
-        tick-marks are extended to give a projection equal to the specified
-        tick length. If bit 5 is set (16), tick-marks will be drawn normal
-        to the border regardless of gridline angle. If bit 6 is set (32),
-        then latitude annotations will be plotted parallel to the border. To
-        set a combination of these, add up the values in parentheses. [1].
+        This argument is a comma-separated list of up to seven keywords:
+        **separate** means longitudes will be annotated on the lower and upper
+        boundaries only, and latitudes will be annotated on the left and right
+        boundaries only;
+        **anywhere** means annotations will occur wherever an imaginary gridline
+        crosses the map boundaries; **lon_horizontal** means longitude annotations
+        will be plotted horizontally; **lat_horizontal** means latitude annotations
+        will be plotted horizontally; **tick_extend** means tick-marks are extended
+        so the distance from the tip of the oblique tick to the map frame equals
+        the specified tick length; **tick_normal** means tick-marks will be drawn
+        normal to the border regardless of gridline angle; **lat_parallel** means
+        latitude annotations will be plotted parallel to the border. [anywhere].
 
     **MAP_ANNOT_OFFSET**
         Sets both :term:`MAP_ANNOT_OFFSET_PRIMARY` and :term:`MAP_ANNOT_OFFSET_SECONDARY` to the value specified.
@@ -611,12 +618,12 @@ MAP Parameters
         :term:`MAP_GRID_PEN_PRIMARY`, :term:`MAP_GRID_PEN_SECONDARY`,
         :term:`MAP_FRAME_PEN`, :term:`MAP_TICK_PEN_PRIMARY`, and
         :term:`MAP_TICK_PEN_SECONDARY` by the color of :term:`MAP_DEFAULT_PEN`
-        [default,black].
+        [0.25p,black].
 
     **MAP_DEGREE_SYMBOL**
         Determines what symbol is used to plot the degree symbol on
         geographic map annotations. Choose between ring, degree, colon, or
-        none [ring].
+        none [degree].
 
     **MAP_FRAME_AXES**
         Sets which axes to draw and annotate. Combine any uppercase **W**,
@@ -674,9 +681,13 @@ MAP Parameters
         draw ticks away from Equator and Greenwich, while a positive size will
         draw symmetric ticks [0p].
 
+    **MAP_GRID_PEN**
+        Sets both :term:`MAP_GRID_PEN_PRIMARY` and :term:`MAP_GRID_PEN_SECONDARY` to
+        the value specified. This setting is not include in the **gmt.conf** file.
+
     **MAP_GRID_PEN_PRIMARY**
         Pen attributes used to draw primary grid lines in dpi units or
-        points (append p) [default,black].
+        points (append p) [0.25p,black].
 
     **MAP_GRID_PEN_SECONDARY**
         Pen attributes used to draw secondary grid lines in dpi units or

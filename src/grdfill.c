@@ -109,7 +109,7 @@ static int parse (struct GMT_CTRL *GMT, struct GRDFILL_CTRL *Ctrl, struct GMT_OP
 	 * returned when registering these sources/destinations with the API.
 	 */
 
-	unsigned int n_errors = 0;
+	unsigned int n_errors = 0, n_files = 0;
 	struct GMT_OPTION *opt = NULL;
 	struct GMTAPI_CTRL *API = GMT->parent;
 
@@ -117,22 +117,15 @@ static int parse (struct GMT_CTRL *GMT, struct GRDFILL_CTRL *Ctrl, struct GMT_OP
 		switch (opt->option) {
 
 			case '<':	/* Input and Output files */
-				/* Since grdfill allowed output grid to be given without -G we must actually
-				 * check for two input files and assign the 2nd as the actual output file */
-				if (gmt_check_filearg (GMT, '<', opt->arg, GMT_IN, GMT_IS_GRID)) {
-					Ctrl->In.file= strdup (opt->arg);
-				}
-				else {
-					GMT_Report (API, GMT_MSG_ERROR, "Cannot find input file %s\n", opt->arg);
-					n_errors++;
-				}
+				if (n_files++ > 0) {n_errors++; continue; }
+				Ctrl->In.active = true;
+				if (opt->arg[0]) Ctrl->In.file = strdup (opt->arg);
+				if (GMT_Get_FilePath (GMT->parent, GMT_IS_GRID, GMT_IN, GMT_FILE_REMOTE, &(Ctrl->In.file))) n_errors++;
 				break;
 			case '>':	/* Output file  */
 				Ctrl->G.active = true;
-				if (gmt_check_filearg (GMT, '>', opt->arg, GMT_OUT, GMT_IS_GRID))
-					Ctrl->G.file = strdup (opt->arg);
-				else
-					n_errors++;
+				if (opt->arg[0]) Ctrl->G.file = strdup (opt->arg);
+				if (GMT_Get_FilePath (GMT->parent, GMT_IS_GRID, GMT_OUT, GMT_FILE_LOCAL, &(Ctrl->G.file))) n_errors++;
 				break;
 
 			/* Processes program-specific parameters */
@@ -161,11 +154,13 @@ static int parse (struct GMT_CTRL *GMT, struct GRDFILL_CTRL *Ctrl, struct GMT_OP
 			case 'G':
 				Ctrl->G.active = true;
 				if (Ctrl->G.file) {
-					GMT_Report (API, GMT_MSG_ERROR, "ecify only one output file\n");
+					GMT_Report (API, GMT_MSG_ERROR, "Specify only one output file\n");
 					n_errors++;
 				}
-				else
+				else {
 					Ctrl->G.file = strdup (opt->arg);
+					if (GMT_Get_FilePath (GMT->parent, GMT_IS_GRID, GMT_OUT, GMT_FILE_LOCAL, &(Ctrl->G.file))) n_errors++;
+				}
 				break;
 
 			case 'L':
@@ -218,7 +213,7 @@ GMT_LOCAL int grdfill_do_splinefill (struct GMTAPI_CTRL *API, struct GMT_GRID *G
 		return (API->error);
 	}
 	/* Create a virtual file to hold the resampled grid */
-	if (GMT_Open_VirtualFile (API, GMT_IS_GRID, GMT_IS_SURFACE, GMT_OUT, NULL, output) == GMT_NOTSET) {
+	if (GMT_Open_VirtualFile (API, GMT_IS_GRID, GMT_IS_SURFACE, GMT_OUT|GMT_IS_REFERENCE, NULL, output) == GMT_NOTSET) {
 		return (API->error);
 	}
 	/* Add up to 2 rows/cols around hole, but watch for grid edges */
@@ -253,7 +248,7 @@ GMT_LOCAL int grdfill_do_splinefill (struct GMTAPI_CTRL *API, struct GMT_GRID *G
 	GMT_Put_Vector (API, V, GMT_Y, GMT_DOUBLE, y);
 	GMT_Put_Vector (API, V, GMT_Z, GMT_FLOAT,  z);
 	/* Associate our input data vectors with a virtual input file */
-	if (GMT_Open_VirtualFile (API, GMT_IS_DATASET|GMT_VIA_VECTOR, GMT_IS_POINT, GMT_IN, V, input) == GMT_NOTSET)
+	if (GMT_Open_VirtualFile (API, GMT_IS_DATASET|GMT_VIA_VECTOR, GMT_IS_POINT, GMT_IN|GMT_IS_REFERENCE, V, input) == GMT_NOTSET)
 		return (API->error);
 	/* Prepare the greenspline command-line arguments */
 	mode = (gmt_M_is_geographic (GMT, GMT_IN)) ? 2 : 1;
@@ -263,7 +258,7 @@ GMT_LOCAL int grdfill_do_splinefill (struct GMTAPI_CTRL *API, struct GMT_GRID *G
 		sprintf (method, "c");
 	sprintf (args, "%s -G%s -S%s -R%.16g/%.16g/%.16g/%.16g -I%.16g/%.16g -D%d", input, output, method, wesn[XLO], wesn[XHI], wesn[YLO], wesn[YHI], G->header->inc[GMT_X], G->header->inc[GMT_Y], mode);
 	if (G->header->registration == GMT_GRID_PIXEL_REG) strcat (args, " -r");
-	strcat (args, " --GMT_HISTORY=false");
+	strcat (args, " --GMT_HISTORY=readonly");
    	/* Run the greenspline module */
 	GMT_Report (API, GMT_MSG_INFORMATION, "Calling greenspline with args %s\n", args);
   	if (GMT_Call_Module (API, "greenspline", GMT_MODULE_CMD, args)) {

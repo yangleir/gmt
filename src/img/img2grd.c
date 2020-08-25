@@ -228,10 +228,10 @@ static int parse (struct GMT_CTRL *GMT, struct IMG2GRD_CTRL *Ctrl, struct GMT_OP
 			/* Common parameters */
 
 			case '<':	/* Input files */
-				if (n_files++ == 0 && gmt_check_filearg (GMT, '<', opt->arg, GMT_IN, GMT_IS_GRID))
-					Ctrl->In.file = strdup (opt->arg);
-				else
-					n_errors++;
+				if (n_files++ > 0) break;
+				Ctrl->In.active = true;
+				if (opt->arg[0]) Ctrl->In.file = strdup (opt->arg);
+				if (GMT_Get_FilePath (GMT->parent, GMT_IS_GRID, GMT_IN, GMT_FILE_REMOTE, &(Ctrl->In.file))) n_errors++;
 				break;
 
 			/* Processes program-specific parameters */
@@ -254,10 +254,9 @@ static int parse (struct GMT_CTRL *GMT, struct IMG2GRD_CTRL *Ctrl, struct GMT_OP
 				Ctrl->E.active = true;
 				break;
 			case 'G':
-				if ((Ctrl->G.active = gmt_check_filearg (GMT, 'G', opt->arg, GMT_OUT, GMT_IS_GRID)) != 0)
-					Ctrl->G.file = strdup (opt->arg);
-				else
-					n_errors++;
+				Ctrl->G.active = true;
+				if (opt->arg[0]) Ctrl->G.file = strdup (opt->arg);
+				if (GMT_Get_FilePath (GMT->parent, GMT_IS_GRID, GMT_OUT, GMT_FILE_LOCAL, &(Ctrl->G.file))) n_errors++;
 				break;
 			case 'm':
 				if (gmt_M_compat_check (GMT, 4))	/* Warn and fall through to 'I' on purpose */
@@ -683,7 +682,7 @@ EXTERN_MSC int GMT_img2grd (void *V_API, int mode, void *args) {
 			GMT_Report (API, GMT_MSG_ERROR, "Read failure at jin = %d.\n", jin);
 			gmt_M_free (GMT, ix);	gmt_M_free (GMT, row);
 			fclose (fp);
-			GMT_exit (GMT, GMT_DATA_READ_ERROR); return GMT_DATA_READ_ERROR;
+			Return (GMT_DATA_READ_ERROR);
 		}
 
 #ifndef WORDS_BIGENDIAN
@@ -774,19 +773,19 @@ EXTERN_MSC int GMT_img2grd (void *V_API, int mode, void *args) {
 	/* Preparing source and destination for GMT_grdproject */
 	/* a. Register the Mercator grid to be the source read by GMT_grdproject by passing a pointer */
 	GMT_Report (API, GMT_MSG_DEBUG, "Open Mercator Grid as grdproject virtual input\n");
-	if (GMT_Open_VirtualFile (API, GMT_IS_GRID, GMT_IS_SURFACE, GMT_IN, Merc, input) != GMT_NOERROR) {
+	if (GMT_Open_VirtualFile (API, GMT_IS_GRID, GMT_IS_SURFACE, GMT_IN|GMT_IS_REFERENCE, Merc, input) != GMT_NOERROR) {
 		Return (API->error);
 	}
 	/* b. If -E: Register a grid struct Geo to be the destination allocated and written to by GMT_grdproject, else write to -G<file> */
 	if (Ctrl->E.active) {	/* Since we will resample again, register a memory location for the result */
 		GMT_Report (API, GMT_MSG_DEBUG, "Register memory Grid container as grdproject output\n");
-		if (GMT_Open_VirtualFile (API, GMT_IS_GRID, GMT_IS_SURFACE, GMT_OUT, NULL, output) != GMT_NOERROR) {
+		if (GMT_Open_VirtualFile (API, GMT_IS_GRID, GMT_IS_SURFACE, GMT_OUT|GMT_IS_REFERENCE, NULL, output) != GMT_NOERROR) {
 			Return (API->error);
 		}
 	}
 	else	/* The output here is the final result */
 		strncpy (output, Ctrl->G.file, PATH_MAX-1);
-	sprintf (cmd, "-R%g/%g/%g/%g -Jm1i -I %s -G%s --PROJ_ELLIPSOID=Sphere --PROJ_LENGTH_UNIT=inch --GMT_HISTORY=false", west, east, south2, north2, input, output);
+	sprintf (cmd, "-R%g/%g/%g/%g -Jm1i -I %s -G%s --PROJ_ELLIPSOID=Sphere --PROJ_LENGTH_UNIT=inch --GMT_HISTORY=readonly", west, east, south2, north2, input, output);
 	GMT_Report (API, GMT_MSG_DEBUG, "Calling grdproject %s.\n", cmd);
 	if (GMT_Call_Module (API, "grdproject", GMT_MODULE_CMD, cmd)!= GMT_NOERROR) {	/* Inverse project the grid or fail */
 		Return (API->error);
@@ -816,10 +815,10 @@ EXTERN_MSC int GMT_img2grd (void *V_API, int mode, void *args) {
 		sprintf (Geo->header->x_units, "longitude [degrees_east]");
 		sprintf (Geo->header->y_units, "latitude [degrees_north]");
 		GMT_Report (API, GMT_MSG_DEBUG, "Open Geo Grid container as grdsample virtual input\n");
-		if (GMT_Open_VirtualFile (API, GMT_IS_GRID, GMT_IS_SURFACE, GMT_IN, Geo, input) != GMT_NOERROR) {
+		if (GMT_Open_VirtualFile (API, GMT_IS_GRID, GMT_IS_SURFACE, GMT_IN|GMT_IS_REFERENCE, Geo, input) != GMT_NOERROR) {
 			Return (API->error);
 		}
-		sprintf (cmd, "-R%g/%g/%g/%g -I%gm %s -G%s -fg --GMT_HISTORY=false", west, east, south, north, Ctrl->I.value, input, Ctrl->G.file);
+		sprintf (cmd, "-R%g/%g/%g/%g -I%gm %s -G%s -fg --GMT_HISTORY=readonly", west, east, south, north, Ctrl->I.value, input, Ctrl->G.file);
 		GMT_Report (API, GMT_MSG_INFORMATION, "Calling grdsample with args %s\n", cmd);
 		if (GMT_Call_Module (API, "grdsample", GMT_MODULE_CMD, cmd) != GMT_NOERROR) {	/* Resample the grid or fail */
 			Return (API->error);

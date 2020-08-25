@@ -389,7 +389,7 @@ static int parse (struct GMT_CTRL *GMT, struct PSTEXT_CTRL *Ctrl, struct GMT_OPT
 		switch (opt->option) {
 
 			case '<':	/* Input files */
-				if (!gmt_check_filearg (GMT, '<', opt->arg, GMT_IN, GMT_IS_DATASET)) n_errors++;
+				if (GMT_Get_FilePath (GMT->parent, GMT_IS_DATASET, GMT_IN, GMT_FILE_REMOTE, &(opt->arg))) n_errors++;;
 				break;
 
 			/* Processes program-specific parameters */
@@ -638,7 +638,7 @@ static int parse (struct GMT_CTRL *GMT, struct PSTEXT_CTRL *Ctrl, struct GMT_OPT
 
 	if (API->external && Ctrl->F.active && Ctrl->F.nread) {	/* Impose order on external interfaces */
 		n_errors += gmt_M_check_condition (GMT, Ctrl->F.nread == 2 && tolower (Ctrl->F.read[1]) == 'a', "Option -F: Must list +a before +c, +f, +j for external API\n");
-		n_errors += gmt_M_check_condition (GMT, Ctrl->F.nread == 3 && (tolower (Ctrl->F.read[1]) == 'a' || tolower (Ctrl->F.read[2]) == 'a'), "Option -F: Must list +a before +c, +f, +jfor external API\n");
+		n_errors += gmt_M_check_condition (GMT, Ctrl->F.nread == 3 && (tolower (Ctrl->F.read[1]) == 'a' || tolower (Ctrl->F.read[2]) == 'a'), "Option -F: Must list +a before +c, +f, +j for external API\n");
 		n_errors += gmt_M_check_condition (GMT, Ctrl->F.nread == 4 && (tolower (Ctrl->F.read[2]) == 'a' || tolower (Ctrl->F.read[2]) == 'a' || tolower (Ctrl->F.read[3]) == 'a'), "Option -F: Must list +a before +c, +f, +j for external API\n");
 	}
 	n_errors += gmt_M_check_condition (GMT, !Ctrl->L.active && !GMT->common.R.active[RSET], "Must specify -R option\n");

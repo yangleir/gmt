@@ -183,7 +183,7 @@ static int parse (struct GMT_CTRL *GMT, struct SPHDISTANCE_CTRL *Ctrl, struct GM
 		switch (opt->option) {
 
 			case '<':	/* Skip input files */
-				if (!gmt_check_filearg (GMT, '<', opt->arg, GMT_IN, GMT_IS_DATASET)) n_errors++;
+				if (GMT_Get_FilePath (GMT->parent, GMT_IS_DATASET, GMT_IN, GMT_FILE_REMOTE, &(opt->arg))) n_errors++;;
 				break;
 
 			/* Processes program-specific parameters */
@@ -208,10 +208,9 @@ static int parse (struct GMT_CTRL *GMT, struct SPHDISTANCE_CTRL *Ctrl, struct GM
 				if (opt->arg[k]) Ctrl->E.dist = atof (&opt->arg[k]);
 				break;
 			case 'G':
-				if ((Ctrl->G.active = gmt_check_filearg (GMT, 'G', opt->arg, GMT_OUT, GMT_IS_GRID)) != 0)
-					Ctrl->G.file = strdup (opt->arg);
-				else
-					n_errors++;
+				Ctrl->G.active = true;
+				if (opt->arg[0]) Ctrl->G.file = strdup (opt->arg);
+				if (GMT_Get_FilePath (GMT->parent, GMT_IS_GRID, GMT_OUT, GMT_FILE_LOCAL, &(Ctrl->G.file))) n_errors++;
 				break;
 			case 'I':
 				n_errors += gmt_parse_inc_option (GMT, 'I', opt->arg);
@@ -252,7 +251,7 @@ static int parse (struct GMT_CTRL *GMT, struct SPHDISTANCE_CTRL *Ctrl, struct GM
 #define Return(code) {Free_Ctrl (GMT, Ctrl); gmt_end_module (GMT, GMT_cpy); bailout (code);}
 
 EXTERN_MSC int GMT_sphdistance (void *V_API, int mode, void *args) {
-	bool first = false, periodic, duplicate_col;
+	bool first = false, periodic, duplicate_col, duplicate = false;
 	int error = 0, s_row, south_row, north_row, w_col, e_col;
 
 	unsigned int row, col, p_col, west_col, east_col, nx1, n_in = 0;
@@ -299,7 +298,8 @@ EXTERN_MSC int GMT_sphdistance (void *V_API, int mode, void *args) {
 
 	gmt_M_memset (&T, 1, struct STRIPACK);
 
-	gmt_init_distaz (GMT, Ctrl->L.unit, gmt_M_sph_mode (GMT), GMT_MAP_DIST);
+	if (gmt_init_distaz (GMT, Ctrl->L.unit, gmt_M_sph_mode (GMT), GMT_MAP_DIST) == GMT_NOT_A_VALID_TYPE)
+		Return (GMT_NOT_A_VALID_TYPE);
 
 	if (!GMT->common.R.active[RSET]) {	/* Default to a global grid */
 		GMT->common.R.wesn[XLO] = 0.0;	GMT->common.R.wesn[XHI] = 360.0;	GMT->common.R.wesn[YLO] = -90.0;	GMT->common.R.wesn[YHI] = 90.0;
@@ -451,7 +451,7 @@ EXTERN_MSC int GMT_sphdistance (void *V_API, int mode, void *args) {
 		GMT_Report (API, GMT_MSG_INFORMATION, "Do Voronoi construction using %" PRIu64 " points\n", n);
 
 		T.mode = VORONOI;
-		gmt_stripack_lists (GMT, n, xx, yy, zz, &T);	/* Do the basic triangulation */
+		if (gmt_stripack_lists (GMT, n, xx, yy, zz, &T)) Return (GMT_RUNTIME_ERROR);	/* Do the basic triangulation */
 		gmt_M_free (GMT, T.D.tri);	/* Don't need the triangulation */
 		if (Ctrl->C.active) {	/* Recompute lon,lat and set pointers */
 			gmt_n_cart_to_geo (GMT, n, xx, yy, zz, xx, yy);	/* Revert to lon, lat */
@@ -479,15 +479,21 @@ EXTERN_MSC int GMT_sphdistance (void *V_API, int mode, void *args) {
 	duplicate_col = (periodic && Grid->header->registration == GMT_GRID_NODE_REG);	/* E.g., lon = 0 column should match lon = 360 column */
 	gmt_set_inside_mode (GMT, NULL, GMT_IOO_SPHERICAL);
 
-	if (Ctrl->Q.active)	/* Pre-chewed, just get number of nodes */
+	if (Ctrl->Q.active) {	/* Pre-chewed, just get number of nodes */
+		struct GMT_DATASET_HIDDEN *QH =  gmt_get_DD_hidden (Qin);
 		n = Table->n_segments;
+		duplicate = (QH->alloc_mode == GMT_ALLOC_EXTERNALLY);
+	}
 	else
 		V = &T.V;
 
 	for (node = 0; node < n; node++) {
 		GMT_Report (API, GMT_MSG_INFORMATION, "Processing polygon %7ld\r", node);
 		if (Ctrl->Q.active) {	/* Just point to next polygon */
-			P = Table->segment[node];
+			if (duplicate)	/* Must duplicate externally allocated segment since it needs to be resampled below */
+				P = gmt_duplicate_segment (GMT, Table->segment[node]);
+			else
+				P = Table->segment[node];
 		}
 		else {	/* Obtain current polygon from Voronoi listings */
 			if (P == NULL) {	/* Need a single polygon structure that we reuse for each polygon */
@@ -529,7 +535,6 @@ EXTERN_MSC int GMT_sphdistance (void *V_API, int mode, void *args) {
 				case SPHD_VALUES:	f_val = z_val[node];	break;
 				default:	break;	/* Must compute distances below */
 			}
-
 		}
 
 		/* Here we have the polygon in P */
@@ -576,6 +581,8 @@ EXTERN_MSC int GMT_sphdistance (void *V_API, int mode, void *args) {
 				}
 			}
 		}
+		if (duplicate)	/* Free duplicate segment */
+			gmt_free_segment (GMT, &P);
 	}
 	GMT_Report (API, GMT_MSG_INFORMATION, "Processing polygon %7ld\n", node);
 

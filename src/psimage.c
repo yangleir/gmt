@@ -144,10 +144,10 @@ static int parse (struct GMT_CTRL *GMT, struct PSIMAGE_CTRL *Ctrl, struct GMT_OP
 		switch (opt->option) {
 
 			case '<':	/* Input files */
-				if (n_files++ == 0 && gmt_check_filearg (GMT, '<', opt->arg, GMT_IN, GMT_IS_IMAGE))
-					Ctrl->In.file = strdup (opt->arg);
-				else
-					n_errors++;
+				if (n_files++ > 0) {n_errors++; continue; }
+				Ctrl->In.active = true;
+				if (opt->arg[0]) Ctrl->In.file = strdup (opt->arg);
+				if (GMT_Get_FilePath (GMT->parent, GMT_IS_IMAGE, GMT_IN, GMT_FILE_REMOTE, &(Ctrl->In.file))) n_errors++;
 				break;
 
 			/* Processes program-specific parameters */
@@ -170,7 +170,7 @@ static int parse (struct GMT_CTRL *GMT, struct PSIMAGE_CTRL *Ctrl, struct GMT_OP
 					n_errors++;
 				}
 				else {	/* args are now [+j<justify>][+o<dx>[/<dy>]][+n<n_columns>[/<n_rows>]][+r<dpi>] */
-					if (gmt_validate_modifiers (GMT, Ctrl->D.refpoint->args, 'D', "jnorw")) n_errors++;
+					if (gmt_validate_modifiers (GMT, Ctrl->D.refpoint->args, 'D', "jnorw", GMT_MSG_ERROR)) n_errors++;
 					/* Required modifier +w OR +r */
 					if (gmt_get_modifier (Ctrl->D.refpoint->args, 'w', string)) {
 						if ((n = gmt_get_pair (GMT, string, GMT_PAIR_DIM_NODUP, Ctrl->D.dim)) < 0) n_errors++;
@@ -289,7 +289,7 @@ static int parse (struct GMT_CTRL *GMT, struct PSIMAGE_CTRL *Ctrl, struct GMT_OP
 	/* Check that the options selected are mutually consistent */
 
 	if (Ctrl->D.refpoint && Ctrl->D.refpoint->mode != GMT_REFPOINT_PLOT) {	/* Anything other than -Dx need -R -J; other cases don't */
-		static char *kind = "gjJnx";	/* The five types of refpoint specifications */
+		static char *kind = GMT_REFPOINT_CODES;	/* The five types of refpoint specifications */
 		n_errors += gmt_M_check_condition (GMT, !GMT->common.R.active[RSET], "-D%c requires the -R option\n", kind[Ctrl->D.refpoint->mode]);
 		n_errors += gmt_M_check_condition (GMT, !GMT->common.J.active, "-D%c requires the -J option\n", kind[Ctrl->D.refpoint->mode]);
 	}
@@ -311,7 +311,7 @@ GMT_LOCAL int file_is_eps (struct GMT_CTRL *GMT, char **file) {	/* Returns 1 if 
 
 	if (F == NULL || F[0] == '\0') return GMT_NOTSET;	/* Nothing given */
 	if (gmt_M_file_is_memory (F)) return (0);	/* Special passing of image */
-	if (gmt_M_file_is_cache (F)) {	/* Must download, then modify the name */
+	if (gmt_file_is_cache (GMT->parent, F)) {	/* Must download, then modify the name */
 		char *tmp = strdup (&F[1]);
 		(void)gmt_download_file_if_not_found (GMT, F, 0);
 		gmt_M_str_free (*file);
